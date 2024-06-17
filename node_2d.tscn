@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://cuywatrvx6sg"]
+
+[sub_resource type="Theme" id="Theme_ul4r8"]
+default_font_size = 70
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Button" type="Button" parent="."]
+offset_left = 244.0
+offset_top = 176.0
+offset_right = 771.0
+offset_bottom = 344.0
+theme = SubResource("Theme_ul4r8")
+text = "click me"
