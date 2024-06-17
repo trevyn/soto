@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://cuywatrvx6sg"]
+[gd_scene load_steps=5 format=3 uid="uid://cuywatrvx6sg"]
 
 [ext_resource type="Script" path="res://Main.gd" id="1_kcb8k"]
+[ext_resource type="PackedScene" uid="uid://ck8jprx4ew4io" path="res://FallingObject.tscn" id="2_6coth"]
 
 [sub_resource type="Theme" id="Theme_ul4r8"]
 default_font_size = 70
@@ -10,6 +11,7 @@ default_font_size = 40
 
 [node name="Node2D" type="Node2D"]
 script = ExtResource("1_kcb8k")
+falling_object_scene = ExtResource("2_6coth")
 
 [node name="Button" type="Button" parent="."]
 offset_left = 244.0
