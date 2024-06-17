@@ -23,12 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: |
+      - name: install steamcmd
+        run: |
           echo steam steam/question select "I AGREE" | sudo debconf-set-selections
           echo steam steam/license note '' | sudo debconf-set-selections
           sudo add-apt-repository multiverse
           sudo dpkg --add-architecture i386
           sudo apt update
           sudo apt-get install steamcmd
+          mkdir -p ~/Steam/config
 
-      - run: steamcmd +quit
+      - run: echo "${{ secrets.STEAM_CONFIG_VDF }}" | base64 -d > ~/Steam/config/config.vdf
+
+      - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +quit
