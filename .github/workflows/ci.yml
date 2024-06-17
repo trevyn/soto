@@ -24,8 +24,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - run: |
-          echo steam steam/question select "I AGREE" | debconf-set-selections
-          echo steam steam/license note '' | debconf-set-selections
+          echo steam steam/question select "I AGREE" | sudo debconf-set-selections
+          echo steam steam/license note '' | sudo debconf-set-selections
           sudo add-apt-repository multiverse
           sudo dpkg --add-architecture i386
           sudo apt update
