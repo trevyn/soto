@@ -23,4 +23,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: apt-get install steamcmd
+      - run: sudo apt-get install steamcmd
