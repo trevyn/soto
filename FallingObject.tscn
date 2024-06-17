@@ -1,10 +1,10 @@
 [gd_scene load_steps=2 format=3 uid="uid://ck8jprx4ew4io"]
 
-[ext_resource type="Script" path="res://node_2d.gd" id="1_vt6pa"]
+[ext_resource type="Script" path="res://CircleDraw.gd" id="1_vt6pa"]
 
 [node name="FallingObject" type="Node2D"]
 
 [node name="RigidBody2D" type="RigidBody2D" parent="."]
 
-[node name="Node2D" type="Node2D" parent="RigidBody2D"]
+[node name="CircleDraw" type="Node2D" parent="RigidBody2D"]
 script = ExtResource("1_vt6pa")
