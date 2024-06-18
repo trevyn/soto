@@ -32,6 +32,16 @@ theme = SubResource("Theme_p6gxr")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(-1006, 535)
+scale = Vector2(100, 100)
+shape = SubResource("RectangleShape2D_7dq5l")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(2161, 637)
+scale = Vector2(100, 100)
+shape = SubResource("RectangleShape2D_7dq5l")
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
 position = Vector2(867, 1644)
 scale = Vector2(100, 100)
