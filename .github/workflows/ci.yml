@@ -66,4 +66,4 @@ jobs:
       - run: ls
       - run: ls Godottest
 
-      - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +run_app_build manifest.vdf +quit
+      - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +run_app_build "$(pwd)/manifest.vdf" +quit
