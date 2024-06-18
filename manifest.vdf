@@ -1,0 +1,20 @@
+"AppBuild"
+{
+	"AppID" "STEAM_APP_ID"
+	"Desc" "This is a simple build script"
+	"ContentRoot" "Godottest/"
+	"BuildOutput" "output/"
+	"SetLive" "dev"
+	"Depots"
+	{
+		"STEAM_DEPOT"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+		}
+	}
+}

@@ -3,7 +3,6 @@ name: ci
 on:
   push:
   pull_request:
-  schedule: [cron: "40 1 * * *"]
 
 permissions:
   contents: read
@@ -32,13 +31,13 @@ jobs:
       - run: ls
       - run: ls Godottest
 
-      - run: Compress-Archive Godottest Godottest.zip
-      - run: ls
+      # - run: Compress-Archive Godottest Godottest.zip
+      # - run: ls
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: Godottest.zip
-          path: Godottest.zip
+          name: Godottest
+          path: Godottest/
           if-no-files-found: error
 
   publish:
@@ -48,6 +47,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
 
       - name: install steamcmd
         run: |
@@ -60,5 +60,11 @@ jobs:
           mkdir -p ~/Steam/config
 
       - run: echo "${{ secrets.STEAM_CONFIG_VDF }}" | base64 -d > ~/Steam/config/config.vdf
+      - run: sed -i 's/STEAM_APP_ID/${{ secrets.STEAM_APP_ID }}/g' manifest.vdf
+      - run: sed -i 's/STEAM_DEPOT/${{ secrets.STEAM_DEPOT }}/g' manifest.vdf
+      - run: pwd
+      - run: ls
+      - run: ls Godottest
 
       - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +quit
+      # - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +runappbuild +quit
