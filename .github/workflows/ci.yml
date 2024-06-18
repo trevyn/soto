@@ -66,5 +66,5 @@ jobs:
       - run: ls
       - run: ls Godottest
 
-      # - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +quit
+      - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +quit
       - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +runappbuild manifest.vdf +quit
