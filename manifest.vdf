@@ -2,9 +2,9 @@
 {
 	"AppID" "STEAM_APP_ID"
 	"Desc" "This is a simple build script"
-	"ContentRoot" "Godottest\"
-	"BuildOutput" "output\"
-	"SetLive" "dev"
+	"ContentRoot" "Godottest/"
+	"BuildOutput" "output/"
+	"SetLive" "develop"
 	"Depots"
 	{
 		"STEAM_DEPOT"
