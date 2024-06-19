@@ -19,3 +19,7 @@ boot_splash/show_image=false
 
 window/size/viewport_width=1280
 window/size/viewport_height=800
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

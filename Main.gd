@@ -6,11 +6,11 @@ var bananas: int = 0
 
 func _ready() -> void:
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
-	$Label.text = "bananas: " + str(bananas)
+	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
 
 func _on_button_pressed():
 	bananas += 1
-	$Label.text = "bananas: " + str(bananas)
+	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
 	
 	var instance = falling_object_scene.instantiate()
 	
