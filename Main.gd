@@ -8,7 +8,7 @@ var controller: int = 0
 func _ready() -> void:
 	var initialize_response: Dictionary = Steam.steamInitEx()
 	print("Did Steam initialize?: %s " % initialize_response)
-	Steam.inputInit()
+	Steam.inputInit(true)
 	
 	
 	controller=Steam.getControllerForGamepadIndex(0)
@@ -54,6 +54,8 @@ func _process(_delta: float) -> void:
 
 func _on_button_2_pressed() -> void:
 	print ("button pressed")
+	
+	Steam.runFrame()
 		
 	$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
 
