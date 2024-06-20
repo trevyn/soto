@@ -3,10 +3,11 @@ extends Node2D
 @export var falling_object_scene: PackedScene
 
 var bananas: int = 0
+var controller: int = 0
 
 func _ready() -> void:
 	var initialize_response: Dictionary = Steam.steamInitEx()
-	var controller=Steam.getControllerForGamepadIndex(0)
+	controller=Steam.getControllerForGamepadIndex(0)
 	var inputType = Steam.getInputTypeForHandle(controller)
 	$SteamStatus.text=str(controller)+" "+str(inputType)+" "+str(initialize_response)
 	print("Did Steam initialize?: %s " % initialize_response)
@@ -15,16 +16,16 @@ func _ready() -> void:
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
 	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
 	
-	var timer = Timer.new()
-	timer.wait_time = 1.0 # Set wait time to 2 seconds
-	timer.one_shot = false
-	add_child(timer)
-	timer.connect("timeout", Callable(self, "_on_Timer_timeout"))
-	timer.start() # Start the timer
-
-func _on_Timer_timeout():
-	print("Timer timed out, calling function...")
-	$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
+	#var timer = Timer.new()
+	#timer.wait_time = 1.0 # Set wait time to 2 seconds
+	#timer.one_shot = false
+	#add_child(timer)
+	#timer.connect("timeout", Callable(self, "_on_Timer_timeout"))
+	#timer.start() # Start the timer
+#
+#func _on_Timer_timeout():
+	#print("Timer timed out, calling function...")
+	#$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
 
 
 
@@ -49,7 +50,7 @@ func _on_button_2_pressed() -> void:
 	$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
 
 
-	Steam.triggerRepeatedHapticPulse(Steam.getControllerForGamepadIndex(0), 0, 50000,50000,10,0)
+	Steam.triggerRepeatedHapticPulse(controller, 0, 50000,50000,10,0)
 	#var device := 0 # The joystick device index, change as needed
 	#var weak_magnitude := float($Weak.text) # Weak vibration strength (0 to 1)
 	#var strong_magnitude := float($Strong.text)  # Strong vibration strength (0 to 1)
