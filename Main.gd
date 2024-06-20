@@ -7,11 +7,18 @@ var controller: int = 0
 
 func _ready() -> void:
 	var initialize_response: Dictionary = Steam.steamInitEx()
-	controller=Steam.getControllerForGamepadIndex(0)
-	var inputType = Steam.getInputTypeForHandle(controller)
-	$SteamStatus.text=str(controller)+" "+str(inputType)+" "+str(initialize_response)
 	print("Did Steam initialize?: %s " % initialize_response)
 	Steam.inputInit()
+	
+	
+	controller=Steam.getControllerForGamepadIndex(0)
+		
+	Steam.triggerRepeatedHapticPulse(controller, 0, 50000,50000,10,0)
+
+	var inputType = Steam.getInputTypeForHandle(controller)
+	$SteamStatus.text=str(controller)+" "+str(inputType)+" "+str(initialize_response)
+
+
 	
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
 	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
