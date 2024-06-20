@@ -16,6 +16,7 @@ func _ready() -> void:
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
 	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
 	
+	
 	#var timer = Timer.new()
 	#timer.wait_time = 1.0 # Set wait time to 2 seconds
 	#timer.one_shot = false
@@ -50,7 +51,7 @@ func _on_button_2_pressed() -> void:
 	$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
 
 
-	Steam.triggerRepeatedHapticPulse(controller, 0, 50000,50000,10,0)
+	Steam.triggerRepeatedHapticPulse(Steam.INPUT_HANDLE_ALL_CONTROLLERS, 0, 50000,50000,10,0)
 	#var device := 0 # The joystick device index, change as needed
 	#var weak_magnitude := float($Weak.text) # Weak vibration strength (0 to 1)
 	#var strong_magnitude := float($Strong.text)  # Strong vibration strength (0 to 1)
