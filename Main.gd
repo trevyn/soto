@@ -32,6 +32,10 @@ func _process(_delta: float) -> void:
 
 func _on_button_2_pressed() -> void:
 	print ("button pressed")
+		
+	$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
+
+
 	Steam.triggerRepeatedHapticPulse(Steam.getControllerForGamepadIndex(0), 0, 50000,50000,10,0)
 	#var device := 0 # The joystick device index, change as needed
 	#var weak_magnitude := float($Weak.text) # Weak vibration strength (0 to 1)
