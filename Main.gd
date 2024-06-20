@@ -14,6 +14,19 @@ func _ready() -> void:
 	
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
 	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
+	
+	var timer = Timer.new()
+	timer.wait_time = 1.0 # Set wait time to 2 seconds
+	timer.one_shot = false
+	add_child(timer)
+	timer.connect("timeout", Callable(self, "_on_Timer_timeout"))
+	timer.start() # Start the timer
+
+func _on_Timer_timeout():
+	print("Timer timed out, calling function...")
+	$SteamStatus.text=str(Steam.getConnectedControllers()) + " " + str(Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0)))
+
+
 
 func _on_button_pressed():
 	bananas += 1
