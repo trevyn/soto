@@ -9,6 +9,7 @@ func _ready() -> void:
 	var inputType = Steam.getInputTypeForHandle(Steam.getControllerForGamepadIndex(0))
 	$SteamStatus.text=str(inputType)+" "+str(initialize_response)
 	print("Did Steam initialize?: %s " % initialize_response)
+	Steam.inputInit()
 	
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
 	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
