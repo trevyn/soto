@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - run: curl https://github.com/GodotSteam/GodotSteam/releases/download/v4.8-gde/godotsteam-gdextension-plugin.zip -o godotsteam-gdextension-plugin.zip
+      - run: unzip godotsteam-gdextension-plugin.zip
+
       - run: curl -o godot.zip -L https://github.com/godotengine/godot-builds/releases/download/${{env.GODOT_VERSION}}/Godot_v${{env.GODOT_VERSION}}_win64.exe.zip
       - run: unzip godot.zip
       - run: curl -o templates.zip -L https://github.com/godotengine/godot-builds/releases/download/${{env.GODOT_VERSION}}/Godot_v${{env.GODOT_VERSION}}_export_templates.tpz

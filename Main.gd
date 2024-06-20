@@ -5,6 +5,10 @@ extends Node2D
 var bananas: int = 0
 
 func _ready() -> void:
+	var initialize_response: Dictionary = Steam.steamInitEx()
+	$SteamStatus.text=str(initialize_response)
+	print("Did Steam initialize?: %s " % initialize_response)
+	
 	$Button.connect("pressed", Callable(self, "_on_button_pressed"))
 	$SubViewportContainer/Label.text = "bananas: " + str(bananas)
 

@@ -35,18 +35,18 @@ theme = SubResource("Theme_p6gxr")
 text = "bananas: 0"
 
 [node name="Button" type="Button" parent="."]
-offset_left = 82.0
-offset_top = 227.0
-offset_right = 609.0
-offset_bottom = 395.0
+offset_left = 81.0
+offset_top = 258.0
+offset_right = 608.0
+offset_bottom = 426.0
 theme = SubResource("Theme_ul4r8")
 text = "click me"
 
 [node name="Button2" type="Button" parent="."]
-offset_left = 645.0
-offset_top = 227.0
-offset_right = 884.0
-offset_bottom = 395.0
+offset_left = 643.0
+offset_top = 259.0
+offset_right = 882.0
+offset_bottom = 427.0
 theme = SubResource("Theme_ul4r8")
 text = "vib"
 
@@ -111,5 +111,12 @@ offset_top = 481.0
 offset_right = 891.0
 offset_bottom = 504.0
 text = "duration"
+
+[node name="SteamStatus" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 192.0
+offset_right = 303.0
+offset_bottom = 251.0
+text = "steam status here"
 
 [connection signal="pressed" from="Button2" to="." method="_on_button_2_pressed"]
