@@ -55,8 +55,6 @@ jobs:
       - run: ls
         working-directory: target/release
 
-      - run: cargo tree -i glow
-
       # - run: mv target/release/soto soto
       #   if: ${{ matrix.os != 'windows-latest' }}
 
@@ -66,7 +64,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.rust == 'nightly' && matrix.os == 'windows-latest' }}
         with:
-          name: Godottest/godottest.exe
+          name: Godottest
           path: target/release/soto.exe
           if-no-files-found: error
 
