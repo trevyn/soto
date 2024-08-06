@@ -3,6 +3,7 @@ name: ci
 on:
   push:
   pull_request:
+  schedule: [cron: "40 1 * * *"]
 
 permissions:
   contents: read
@@ -58,14 +59,14 @@ jobs:
       # - run: mv target/release/soto soto
       #   if: ${{ matrix.os != 'windows-latest' }}
 
-      # - run: mv target/release/soto.exe soto
-      #   if: ${{ matrix.os == 'windows-latest' }}
+      - run: mv target/release/soto.exe Godottest.exe
+        if: ${{ matrix.os == 'windows-latest' }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.rust == 'nightly' && matrix.os == 'windows-latest' }}
         with:
           name: Godottest
-          path: target/release/soto.exe
+          path: Godottest.exe
           if-no-files-found: error
 
   publish:
@@ -94,4 +95,4 @@ jobs:
       - run: ls
       - run: ls Godottest
 
-      # - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +run_app_build "$(pwd)/manifest.vdf" +quit
+      - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +run_app_build "$(pwd)/manifest.vdf" +quit
