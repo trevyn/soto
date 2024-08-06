@@ -18,7 +18,7 @@ log = "0.4"
 notify = "6.1"
 path-clean = "1.0.1"
 pollster = "0.3"
-wgpu = {version = "22.1.0", default-features = true, features = ["naga-ir"]}
+wgpu = {version = "22.1.0", default-features = false, features = ["naga-ir"]}
 winit = "0.29"
 winit_input_helper = "0.16"
 
