@@ -26,6 +26,8 @@ pub const WIDTH: u32 = 1920;
 pub const HEIGHT: u32 = 1080;
 
 pub struct FluidSimApp {
+    num_inputs: usize,
+    num_renders: usize,
     fluid_sim: FluidSimState,
     gui: GuiState,
 }
@@ -45,6 +47,8 @@ struct FluidSimState {
 impl FluidSimApp {
     pub fn new(event_loop: &EventLoopWindowTarget<()>, context: &mut GlassContext) -> FluidSimApp {
         FluidSimApp {
+            num_inputs: 0,
+            num_renders: 0,
             fluid_sim: FluidSimState {
                 circle_pipeline: None,
                 rectangle_pipeline: None,
@@ -97,6 +101,7 @@ impl GlassApp for FluidSimApp {
         _event_loop: &EventLoopWindowTarget<()>,
         event: &Event<()>,
     ) {
+        self.num_inputs += 1;
         self.fluid_sim.input.update(event);
         // update_egui_with_winit_event(self, context, event);
     }
@@ -148,15 +153,15 @@ impl GlassApp for FluidSimApp {
                 ],
                 &self.fluid_sim.camera,
             );
-            if self.fluid_sim.input.mouse_pressed(MouseButton::Left) {
-                self.fluid_sim.fluid_scene.drag(pos, true);
-            }
-            if self.fluid_sim.input.mouse_held(MouseButton::Left) {
-                self.fluid_sim.fluid_scene.drag(pos, false);
-            }
-            if self.fluid_sim.input.mouse_released(MouseButton::Left) {
-                self.fluid_sim.fluid_scene.end_drag();
-            }
+            // if self.fluid_sim.input.mouse_pressed(MouseButton::Left) {
+            //     self.fluid_sim.fluid_scene.drag(pos, true);
+            // }
+            // if self.fluid_sim.input.mouse_held(MouseButton::Left) {
+            self.fluid_sim.fluid_scene.drag(pos, false);
+            // }
+            // if self.fluid_sim.input.mouse_released(MouseButton::Left) {
+            //     self.fluid_sim.fluid_scene.end_drag();
+            // }
         }
         // Simulate
         self.fluid_sim.fluid_scene.simulate();
@@ -167,6 +172,7 @@ impl GlassApp for FluidSimApp {
         context: &GlassContext,
         render_data: RenderData,
     ) -> Option<Vec<CommandBuffer>> {
+        self.num_renders += 1;
         return Some(render(self, context, render_data));
     }
 
@@ -281,6 +287,8 @@ fn render_egui(
         egui::SidePanel::left("left").show(egui_ctx, |ui| {
             ui.label("Hello World!");
             ui.label(format!("fps: {:.2}", app.fluid_sim.timer.avg_fps()));
+            ui.label(format!("inputs: {}", app.num_inputs));
+            ui.label(format!("renders: {}", app.num_renders));
             ui.add(egui::Slider::new(
                 &mut app.fluid_sim.fluid_scene.dt,
                 0.00..=0.03,
