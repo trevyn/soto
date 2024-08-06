@@ -97,9 +97,8 @@ impl GlassApp for FluidSimApp {
         _event_loop: &EventLoopWindowTarget<()>,
         event: &Event<()>,
     ) {
-        if !update_egui_with_winit_event(self, context, event) {
-            self.fluid_sim.input.update(event);
-        }
+        self.fluid_sim.input.update(event);
+        // update_egui_with_winit_event(self, context, event);
     }
 
     fn update(&mut self, context: &mut GlassContext) {
