@@ -55,17 +55,19 @@ jobs:
       - run: ls
         working-directory: target/release
 
-      - run: mv target/release/brace brace
-        if: ${{ matrix.os != 'windows-latest' }}
+      - run: cargo tree -i glow
 
-      - run: mv target/release/brace.exe brace
-        if: ${{ matrix.os == 'windows-latest' }}
+      # - run: mv target/release/soto soto
+      #   if: ${{ matrix.os != 'windows-latest' }}
+
+      # - run: mv target/release/soto.exe soto
+      #   if: ${{ matrix.os == 'windows-latest' }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.rust == 'nightly' && matrix.os == 'windows-latest' }}
         with:
           name: Godottest/godottest.exe
-          path: brace.exe
+          path: target/release/soto.exe
           if-no-files-found: error
 
   publish:
