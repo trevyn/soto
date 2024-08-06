@@ -33,8 +33,8 @@ impl FluidScene {
         let tank_height = 1.0 * sim_height;
         let tank_width = 1.0 * sim_width;
         let h = tank_height / res;
-        let rel_water_height = 0.8;
-        let rel_water_width = 0.6;
+        let rel_water_height = 0.4;
+        let rel_water_width = 0.3;
 
         // particle radius w.r.t. cell size
         let r = 0.3 * h;
