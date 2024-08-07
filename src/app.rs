@@ -104,6 +104,30 @@ impl GlassApp for FluidSimApp {
         self.fluid_sim.post_processing = Some(PostProcessing::new(context));
     }
 
+    fn window_input(
+        &mut self,
+        context: &mut GlassContext,
+        _event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: &WindowEvent,
+    ) {
+        self.num_inputs += 1;
+        if let WindowEvent::CursorMoved { position, .. } = event {
+            let screen_size = context.primary_render_window().surface_size();
+            let scale_factor = context.primary_render_window().window().scale_factor() as f32;
+
+            let pos = cursor_to_world(
+                Vec2::new(position.x as f32, position.y as f32) / scale_factor,
+                &[
+                    screen_size[0] as f32 / scale_factor,
+                    screen_size[1] as f32 / scale_factor,
+                ],
+                &self.fluid_sim.camera,
+            );
+
+            self.fluid_sim.fluid_scene.drag(pos, false);
+        }
+    }
     // fn input(
     //     &mut self,
     //     context: &mut GlassContext,
