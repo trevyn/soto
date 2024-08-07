@@ -34,6 +34,7 @@ pub const HEIGHT: u32 = 1080;
 
 pub struct FluidSimApp {
     num_inputs: usize,
+    num_device_inputs: usize,
     num_renders: usize,
     fluid_sim: FluidSimState,
     gui: Option<GuiState>,
@@ -55,6 +56,7 @@ impl FluidSimApp {
     pub fn new(context: &mut GlassContext) -> FluidSimApp {
         FluidSimApp {
             num_inputs: 0,
+            num_device_inputs: 0,
             num_renders: 0,
             fluid_sim: FluidSimState {
                 circle_pipeline: Some(CirclePipeline::new(
@@ -104,6 +106,22 @@ impl GlassApp for FluidSimApp {
         self.fluid_sim.post_processing = Some(PostProcessing::new(context));
     }
 
+    fn device_input(
+        &mut self,
+        _context: &mut GlassContext,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        _event: &winit::event::DeviceEvent,
+    ) {
+        if let winit::event::DeviceEvent::MouseMotion { delta } = _event {
+            self.num_device_inputs += 1;
+
+            self.fluid_sim
+                .fluid_scene
+                .drag(Vec2::new(delta.0 as f32, -delta.1 as f32 - 400.), false);
+        }
+    }
+
     fn window_input(
         &mut self,
         context: &mut GlassContext,
@@ -111,8 +129,9 @@ impl GlassApp for FluidSimApp {
         _window_id: WindowId,
         event: &WindowEvent,
     ) {
-        self.num_inputs += 1;
         if let WindowEvent::CursorMoved { position, .. } = event {
+            self.num_inputs += 1;
+
             let screen_size = context.primary_render_window().surface_size();
             let scale_factor = context.primary_render_window().window().scale_factor() as f32;
 
@@ -125,7 +144,7 @@ impl GlassApp for FluidSimApp {
                 &self.fluid_sim.camera,
             );
 
-            self.fluid_sim.fluid_scene.drag(pos, false);
+            // self.fluid_sim.fluid_scene.drag(pos, false);
         }
     }
     // fn input(
@@ -324,6 +343,7 @@ fn render_egui(
             ui.label("Hello World!");
             ui.label(format!("fps: {:.2}", app.fluid_sim.timer.avg_fps()));
             ui.label(format!("inputs: {}", app.num_inputs));
+            ui.label(format!("device inputs: {}", app.num_device_inputs));
             ui.label(format!("renders: {}", app.num_renders));
             ui.add(egui::Slider::new(
                 &mut app.fluid_sim.fluid_scene.dt,
