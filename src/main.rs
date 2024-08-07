@@ -44,7 +44,5 @@ fn config() -> GlassConfig {
 fn main() -> Result<(), GlassError> {
     eprintln!("Hello world!");
 
-    Glass::new_and_run(config(), |event_loop, context| {
-        Box::new(FluidSimApp::new(event_loop, context))
-    })
+    Glass::run(config(), |context| Box::new(FluidSimApp::new(context)))
 }

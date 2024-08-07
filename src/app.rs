@@ -7,15 +7,22 @@ use glass::{
     texture::Texture,
     wgpu::{BlendState, ColorTargetState, ColorWrites, Extent3d, TextureFormat, TextureUsages},
     window::GlassWindow,
-    winit::{
-        event::Event,
-        event_loop::{EventLoop, EventLoopWindowTarget},
-    },
-    GlassApp, GlassContext, RenderData,
+    // winit::{
+    //     event::Event,
+    //     event_loop::{ActiveEventLoop, EventLoop},
+    // },
+    GlassApp,
+    GlassContext,
+    RenderData,
 };
 use wgpu::{CommandBuffer, CommandEncoder, RenderPass, StoreOp, SurfaceTexture, TextureView};
 use winit::{event::MouseButton, keyboard::KeyCode};
-use winit_input_helper::WinitInputHelper;
+// use winit_input_helper::WinitInputHelper;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::ActiveEventLoop,
+    window::{Window, WindowId},
+};
 
 use crate::{
     camera::Camera, circle_pipeline::CirclePipeline, color::Color, fluid_sim::FluidScene,
@@ -29,7 +36,7 @@ pub struct FluidSimApp {
     num_inputs: usize,
     num_renders: usize,
     fluid_sim: FluidSimState,
-    gui: GuiState,
+    gui: Option<GuiState>,
 }
 
 struct FluidSimState {
@@ -39,43 +46,45 @@ struct FluidSimState {
     post_processing: Option<PostProcessing>,
     render_target: Option<Texture>,
     camera: Camera,
-    input: WinitInputHelper,
+    // input: WinitInputHelper,
     fluid_scene: FluidScene,
     timer: Timer,
 }
 
 impl FluidSimApp {
-    pub fn new(event_loop: &EventLoopWindowTarget<()>, context: &mut GlassContext) -> FluidSimApp {
+    pub fn new(context: &mut GlassContext) -> FluidSimApp {
         FluidSimApp {
             num_inputs: 0,
             num_renders: 0,
             fluid_sim: FluidSimState {
-                circle_pipeline: None,
+                circle_pipeline: Some(CirclePipeline::new(
+                    context.device(),
+                    ColorTargetState {
+                        format: GlassWindow::default_surface_format(),
+
+                        blend: Some(BlendState::ALPHA_BLENDING),
+                        write_mask: ColorWrites::ALL,
+                    },
+                )),
                 rectangle_pipeline: None,
                 quad_pipeline: None,
                 render_target: None,
                 post_processing: None,
                 camera: Camera::new([WIDTH as f32, HEIGHT as f32]),
-                input: WinitInputHelper::default(),
+                // input: WinitInputHelper::default(),
                 fluid_scene: FluidScene::new(WIDTH as f32, HEIGHT as f32),
                 timer: Timer::new(),
             },
-            gui: GuiState::new(event_loop, context),
+            gui: None,
         }
     }
 }
 
 impl GlassApp for FluidSimApp {
-    fn start(&mut self, _event_loop: &EventLoop<()>, context: &mut GlassContext) {
+    fn start(&mut self, event_loop: &ActiveEventLoop, context: &mut GlassContext) {
+        self.gui = Some(GuiState::new(event_loop, context));
+
         self.fluid_sim.render_target = Some(create_render_target(context));
-        self.fluid_sim.circle_pipeline = Some(CirclePipeline::new(
-            context.device(),
-            ColorTargetState {
-                format: TextureFormat::Bgra8UnormSrgb,
-                blend: Some(BlendState::ALPHA_BLENDING),
-                write_mask: ColorWrites::ALL,
-            },
-        ));
         self.fluid_sim.rectangle_pipeline = Some(RectanglePipeline::new(
             context.device(),
             ColorTargetState {
@@ -95,74 +104,74 @@ impl GlassApp for FluidSimApp {
         self.fluid_sim.post_processing = Some(PostProcessing::new(context));
     }
 
-    fn input(
-        &mut self,
-        context: &mut GlassContext,
-        _event_loop: &EventLoopWindowTarget<()>,
-        event: &Event<()>,
-    ) {
-        self.num_inputs += 1;
-        self.fluid_sim.input.update(event);
-        // update_egui_with_winit_event(self, context, event);
-    }
+    // fn input(
+    //     &mut self,
+    //     context: &mut GlassContext,
+    //     _event_loop: &EventLoopWindowTarget<()>,
+    //     event: &Event<()>,
+    // ) {
+    //     self.num_inputs += 1;
+    //     // self.fluid_sim.input.update(event);
+    //     // update_egui_with_winit_event(self, context, event);
+    // }
 
     fn update(&mut self, context: &mut GlassContext) {
         context
             .primary_render_window()
             .window()
             .set_title(&format!("FPS: {:.3}", self.fluid_sim.timer.avg_fps()));
-        let (_, scroll_diff) = self.fluid_sim.input.scroll_diff();
-        if scroll_diff > 0.0 {
-            self.fluid_sim
-                .camera
-                .set_scale(self.fluid_sim.camera.scale() / 1.05);
-        } else if scroll_diff < 0.0 {
-            self.fluid_sim
-                .camera
-                .set_scale(self.fluid_sim.camera.scale() * 1.05);
-        }
-        if self.fluid_sim.input.window_resized().is_some()
-            || self.fluid_sim.input.scale_factor_changed().is_some()
-        {
-            self.resize(context);
-        }
-        // Read inputs state
-        if self.fluid_sim.input.key_pressed(KeyCode::Space) {
-            self.fluid_sim.fluid_scene.toggle_pause();
-        }
-        if self.fluid_sim.input.key_pressed(KeyCode::KeyR) {
-            self.fluid_sim.fluid_scene.reset();
-        }
-        if self.fluid_sim.input.key_pressed(KeyCode::KeyG) {
-            self.fluid_sim.fluid_scene.toggle_grid();
-        }
-        if self.fluid_sim.input.key_pressed(KeyCode::KeyP) {
-            self.fluid_sim.fluid_scene.toggle_particles();
-        }
-        if self.fluid_sim.input.key_pressed(KeyCode::KeyF) {
-            self.fluid_sim.fluid_scene.toggle_gravity();
-        }
-        if let Some((x, y)) = self.fluid_sim.input.cursor() {
-            let screen_size = context.primary_render_window().surface_size();
-            let scale_factor = 1.0; //context.primary_render_window().window().scale_factor() as f32;
-            let pos = cursor_to_world(
-                Vec2::new(x, y) / scale_factor,
-                &[
-                    screen_size[0] as f32 / scale_factor,
-                    screen_size[1] as f32 / scale_factor,
-                ],
-                &self.fluid_sim.camera,
-            );
-            // if self.fluid_sim.input.mouse_pressed(MouseButton::Left) {
-            //     self.fluid_sim.fluid_scene.drag(pos, true);
-            // }
-            // if self.fluid_sim.input.mouse_held(MouseButton::Left) {
-            self.fluid_sim.fluid_scene.drag(pos, false);
-            // }
-            // if self.fluid_sim.input.mouse_released(MouseButton::Left) {
-            //     self.fluid_sim.fluid_scene.end_drag();
-            // }
-        }
+        // let (_, scroll_diff) = self.fluid_sim.input.scroll_diff();
+        // if scroll_diff > 0.0 {
+        //     self.fluid_sim
+        //         .camera
+        //         .set_scale(self.fluid_sim.camera.scale() / 1.05);
+        // } else if scroll_diff < 0.0 {
+        //     self.fluid_sim
+        //         .camera
+        //         .set_scale(self.fluid_sim.camera.scale() * 1.05);
+        // }
+        // if self.fluid_sim.input.window_resized().is_some()
+        //     || self.fluid_sim.input.scale_factor_changed().is_some()
+        // {
+        //     self.resize(context);
+        // }
+        // // Read inputs state
+        // if self.fluid_sim.input.key_pressed(KeyCode::Space) {
+        //     self.fluid_sim.fluid_scene.toggle_pause();
+        // }
+        // if self.fluid_sim.input.key_pressed(KeyCode::KeyR) {
+        //     self.fluid_sim.fluid_scene.reset();
+        // }
+        // if self.fluid_sim.input.key_pressed(KeyCode::KeyG) {
+        //     self.fluid_sim.fluid_scene.toggle_grid();
+        // }
+        // if self.fluid_sim.input.key_pressed(KeyCode::KeyP) {
+        //     self.fluid_sim.fluid_scene.toggle_particles();
+        // }
+        // if self.fluid_sim.input.key_pressed(KeyCode::KeyF) {
+        //     self.fluid_sim.fluid_scene.toggle_gravity();
+        // }
+        // if let Some((x, y)) = self.fluid_sim.input.cursor() {
+        //     let screen_size = context.primary_render_window().surface_size();
+        //     let scale_factor = 1.0; //context.primary_render_window().window().scale_factor() as f32;
+        //     let pos = cursor_to_world(
+        //         Vec2::new(x, y) / scale_factor,
+        //         &[
+        //             screen_size[0] as f32 / scale_factor,
+        //             screen_size[1] as f32 / scale_factor,
+        //         ],
+        //         &self.fluid_sim.camera,
+        //     );
+        //     // if self.fluid_sim.input.mouse_pressed(MouseButton::Left) {
+        //     //     self.fluid_sim.fluid_scene.drag(pos, true);
+        //     // }
+        //     // if self.fluid_sim.input.mouse_held(MouseButton::Left) {
+        //     self.fluid_sim.fluid_scene.drag(pos, false);
+        //     // }
+        //     // if self.fluid_sim.input.mouse_released(MouseButton::Left) {
+        //     //     self.fluid_sim.fluid_scene.end_drag();
+        //     // }
+        // }
         // Simulate
         self.fluid_sim.fluid_scene.simulate();
     }
@@ -223,7 +232,7 @@ struct GuiState {
 }
 
 impl GuiState {
-    fn new(event_loop: &EventLoopWindowTarget<()>, context: &mut GlassContext) -> GuiState {
+    fn new(event_loop: &ActiveEventLoop, context: &mut GlassContext) -> GuiState {
         let ctx = egui::Context::default();
         let pixels_per_point = context.primary_render_window().window().scale_factor() as f32;
         let egui_winit = egui_winit::State::new(
@@ -270,12 +279,15 @@ fn render_egui(
     view: &TextureView,
 ) -> Vec<CommandBuffer> {
     let window = context.primary_render_window();
-    let GuiState {
+    let Some(GuiState {
         egui_ctx,
         renderer,
         egui_winit,
         ..
-    } = &mut app.gui;
+    }) = &mut app.gui
+    else {
+        return vec![];
+    };
     let raw_input = egui_winit.take_egui_input(window.window());
     let FullOutput {
         shapes,
@@ -369,7 +381,7 @@ fn render_scene<'a>(
         post_processing,
         render_target,
         camera,
-        input,
+        // input,
         fluid_scene,
         ..
     } = state;
@@ -380,7 +392,7 @@ fn render_scene<'a>(
     let render_target = render_target.as_ref().unwrap();
     let window = context.primary_render_window();
     let window_size = window.surface_size();
-    let scale_factor = input.scale_factor().unwrap_or(1.0) as f32;
+    let scale_factor = 1.0; //input.scale_factor().unwrap_or(1.0) as f32;
     let window_size_f32 = [
         window_size[0] as f32 * scale_factor,
         window_size[1] as f32 * scale_factor,
@@ -528,24 +540,20 @@ fn render_scene<'a>(
 fn update_egui_with_winit_event(
     app: &mut FluidSimApp,
     context: &mut GlassContext,
-    event: &Event<()>,
-) -> bool {
-    match event {
-        Event::WindowEvent {
-            window_id, event, ..
-        } => {
-            let gui = &mut app.gui;
-            if let Some(window) = context.render_window(*window_id) {
-                let EventResponse { consumed, repaint } =
-                    gui.egui_winit.on_window_event(window.window(), event);
-                gui.repaint = repaint;
-                // Skip input if event was consumed by egui
-                if consumed {
-                    return true;
-                }
-            }
+    window_id: &WindowId,
+    event: &WindowEvent,
+) {
+    let gui = &mut app.gui;
+    if let Some(window) = context.render_window(*window_id) {
+        let EventResponse { consumed, repaint } = gui
+            .as_mut()
+            .unwrap()
+            .egui_winit
+            .on_window_event(window.window(), event);
+        // gui.repaint = repaint;
+        // Skip input if event was consumed by egui
+        if consumed {
+            return;
         }
-        _ => {}
     }
-    false
 }

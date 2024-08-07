@@ -11,7 +11,7 @@ egui-wgpu = "0.28"
 egui-winit = "0.28"
 flume = "0.11"
 glam = "0.28"
-glass = {git = "https://github.com/trevyn/glass", branch = "hack"}
+glass = {git = "https://github.com/trevyn/glass", branch = "winit-0-30"}
 image = "0.25"
 indexmap = "2.2"
 log = "0.4"
@@ -19,8 +19,8 @@ notify = "6.1"
 path-clean = "1.0.1"
 pollster = "0.3"
 wgpu = {version = "22.1.0", default-features = false, features = ["metal", "naga-ir"]}
-winit = "0.29"
-winit_input_helper = "0.16"
+winit = "0.30"
+# winit_input_helper = "0.16"
 
 [patch.crates-io]
 egui = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
