@@ -116,9 +116,9 @@ impl GlassApp for FluidSimApp {
         if let winit::event::DeviceEvent::MouseMotion { delta } = _event {
             self.num_device_inputs += 1;
 
-            self.fluid_sim
-                .fluid_scene
-                .drag(Vec2::new(delta.0 as f32, -delta.1 as f32 - 400.), false);
+            // self.fluid_sim
+            //     .fluid_scene
+            //     .drag(Vec2::new(delta.0 as f32, -delta.1 as f32 - 400.), false);
         }
     }
 
@@ -144,7 +144,7 @@ impl GlassApp for FluidSimApp {
                 &self.fluid_sim.camera,
             );
 
-            // self.fluid_sim.fluid_scene.drag(pos, false);
+            self.fluid_sim.fluid_scene.drag(pos, false);
         }
     }
     // fn input(
