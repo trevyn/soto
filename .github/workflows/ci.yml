@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+  # 1.60
+  STEAMWORKS_COMMIT: e7bb839178fc5a48aa380d85e2ad04cc97d9d11c
+
 jobs:
   assign:
     name: assign build_id
@@ -78,6 +83,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+
+      - run: curl -L -o steamworks.tar.gz https://github.com/rlabrecque/SteamworksSDK/archive/${{env.STEAMWORKS_COMMIT}}.tar.gz
+      - run: tar xzf steamworks.tar.gz
+
+      - run: ls
 
       - name: install steamcmd
         run: |
