@@ -20,6 +20,7 @@ path-clean = "1.0.1"
 pollster = "0.3"
 puffin = "0.19.1"
 puffin_egui = "0.29"
+steamworks = {git = "https://github.com/trevyn/steamworks-rs", branch = "master"}
 wgpu = {version = "22.1.0", default-features = false, features = ["metal", "naga-ir"]}
 winit = "0.30"
 # rapier2d = {version = "0.22.0", features = ["default", "debug-render"]}
