@@ -132,6 +132,8 @@ impl FluidScene {
     }
 
     pub fn simulate(&mut self) {
+        puffin::profile_function!();
+
         if !self.paused {
             self.fluid.simulate(
                 self.dt,

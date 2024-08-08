@@ -108,21 +108,21 @@ impl GlassApp for FluidSimApp {
         self.fluid_sim.post_processing = Some(PostProcessing::new(context));
     }
 
-    fn device_input(
-        &mut self,
-        _context: &mut GlassContext,
-        _event_loop: &ActiveEventLoop,
-        _device_id: winit::event::DeviceId,
-        _event: &winit::event::DeviceEvent,
-    ) {
-        if let winit::event::DeviceEvent::MouseMotion { delta } = _event {
-            self.num_device_inputs += 1;
+    // fn device_input(
+    //     &mut self,
+    //     _context: &mut GlassContext,
+    //     _event_loop: &ActiveEventLoop,
+    //     _device_id: winit::event::DeviceId,
+    //     _event: &winit::event::DeviceEvent,
+    // ) {
+    //     if let winit::event::DeviceEvent::MouseMotion { delta } = _event {
+    //         self.num_device_inputs += 1;
 
-            // self.fluid_sim
-            //     .fluid_scene
-            //     .drag(Vec2::new(delta.0 as f32, -delta.1 as f32 - 400.), false);
-        }
-    }
+    //         // self.fluid_sim
+    //         //     .fluid_scene
+    //         //     .drag(Vec2::new(delta.0 as f32, -delta.1 as f32 - 400.), false);
+    //     }
+    // }
 
     fn window_input(
         &mut self,
@@ -131,6 +131,8 @@ impl GlassApp for FluidSimApp {
         window_id: WindowId,
         event: &WindowEvent,
     ) {
+        puffin::profile_function!();
+
         if let WindowEvent::CursorMoved { position, .. } = event {
             self.num_inputs += 1;
 
@@ -162,6 +164,8 @@ impl GlassApp for FluidSimApp {
     // }
 
     fn update(&mut self, context: &mut GlassContext) {
+        puffin::profile_function!();
+
         context
             .primary_render_window()
             .window()
@@ -235,6 +239,8 @@ impl GlassApp for FluidSimApp {
     }
 
     fn end_of_frame(&mut self, _context: &mut GlassContext) {
+        puffin::profile_function!();
+
         self.fluid_sim.timer.update();
     }
 }
@@ -327,6 +333,8 @@ fn render_egui(
     frame: &SurfaceTexture,
     view: &TextureView,
 ) -> Vec<CommandBuffer> {
+    puffin::profile_function!();
+
     let window = context.primary_render_window();
     let Some(GuiState {
         egui_ctx,
@@ -424,6 +432,8 @@ fn render_scene<'a>(
     context: &GlassContext,
     render_pass: &mut RenderPass<'a>,
 ) {
+    puffin::profile_function!();
+
     // Render on render target
     // Paste render target over swapchain image
     let FluidSimState {
