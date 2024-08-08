@@ -85,9 +85,8 @@ jobs:
       - uses: actions/download-artifact@v4
 
       - run: curl -L -o steamworks.tar.gz https://github.com/rlabrecque/SteamworksSDK/archive/${{env.STEAMWORKS_COMMIT}}.tar.gz
-      - run: tar xzf steamworks.tar.gz
-
-      - run: ls
+      - run: tar xzf steamworks.tar.gz SteamworksSDK-${{env.STEAMWORKS_COMMIT}}/redistributable_bin/win64/steam_api64.dll
+      - run: cp SteamworksSDK-${{env.STEAMWORKS_COMMIT}}/redistributable_bin/win64/steam_api64.dll Godottest/
 
       - name: install steamcmd
         run: |
