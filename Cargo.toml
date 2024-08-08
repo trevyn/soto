@@ -18,27 +18,17 @@ log = "0.4"
 notify = "6.1"
 path-clean = "1.0.1"
 pollster = "0.3"
+puffin = "0.19.1"
+puffin_egui = "0.29"
 wgpu = {version = "22.1.0", default-features = false, features = ["metal", "naga-ir"]}
 winit = "0.30"
-# winit_input_helper = "0.16"
+# rapier2d = {version = "0.22.0", features = ["default", "debug-render"]}
 
 [patch.crates-io]
 egui = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
 egui-wgpu = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
 egui-winit = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
-# egui_demo_lib = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
-# egui_extras = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
-# egui_plot = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
-
-# [dev-dependencies]
-# egui_demo_lib = {version = "0.28"}
-# rand = "0.8"
-# rapier2d = {version = "0.22.0", features = ["default", "debug-render"]}
-# winit_input_helper = "0.16"
-
-# [lints.clippy]
-# blocks_in_conditions = "allow"
-# field_reassign_with_default = "allow"
+egui_extras = {git = "https://github.com/trevyn/egui", branch = "multiclick-text-select"}
 
 [profile.dev]
 opt-level = 3

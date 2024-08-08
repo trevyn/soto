@@ -54,6 +54,8 @@ struct FluidSimState {
 
 impl FluidSimApp {
     pub fn new(context: &mut GlassContext) -> FluidSimApp {
+        puffin::set_scopes_on(true);
+
         FluidSimApp {
             num_inputs: 0,
             num_device_inputs: 0,
@@ -126,7 +128,7 @@ impl GlassApp for FluidSimApp {
         &mut self,
         context: &mut GlassContext,
         _event_loop: &ActiveEventLoop,
-        _window_id: WindowId,
+        window_id: WindowId,
         event: &WindowEvent,
     ) {
         if let WindowEvent::CursorMoved { position, .. } = event {
@@ -146,6 +148,7 @@ impl GlassApp for FluidSimApp {
 
             self.fluid_sim.fluid_scene.drag(pos, false);
         }
+        update_egui_with_winit_event(self, context, &window_id, event);
     }
     // fn input(
     //     &mut self,
@@ -224,6 +227,9 @@ impl GlassApp for FluidSimApp {
         context: &GlassContext,
         render_data: RenderData,
     ) -> Option<Vec<CommandBuffer>> {
+        puffin::profile_function!();
+        puffin::GlobalProfiler::lock().new_frame();
+
         self.num_renders += 1;
         return Some(render(self, context, render_data));
     }
@@ -341,6 +347,8 @@ fn render_egui(
         // egui_adjust!(egui_ctx, app.fluid_scene);
         egui::SidePanel::left("left").show(egui_ctx, |ui| {
             ui.label("Hello World!");
+            puffin_egui::show_viewport_if_enabled(egui_ctx);
+
             ui.label(format!("fps: {:.2}", app.fluid_sim.timer.avg_fps()));
             ui.label(format!("inputs: {}", app.num_inputs));
             ui.label(format!("device inputs: {}", app.num_device_inputs));
