@@ -15,6 +15,10 @@ use glass::{
     GlassContext,
     RenderData,
 };
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 use wgpu::{CommandBuffer, CommandEncoder, RenderPass, StoreOp, SurfaceTexture, TextureView};
 use winit::{event::MouseButton, keyboard::KeyCode};
 // use winit_input_helper::WinitInputHelper;
@@ -34,7 +38,6 @@ pub const HEIGHT: u32 = 1080;
 
 pub struct FluidSimApp {
     num_inputs: usize,
-    num_device_inputs: usize,
     num_renders: usize,
     fluid_sim: FluidSimState,
     gui: Option<GuiState>,
@@ -47,8 +50,7 @@ struct FluidSimState {
     post_processing: Option<PostProcessing>,
     render_target: Option<Texture>,
     camera: Camera,
-    // input: WinitInputHelper,
-    fluid_scene: FluidScene,
+    fluid_scene: Arc<Mutex<FluidScene>>,
     timer: Timer,
 }
 
@@ -58,7 +60,6 @@ impl FluidSimApp {
 
         FluidSimApp {
             num_inputs: 0,
-            num_device_inputs: 0,
             num_renders: 0,
             fluid_sim: FluidSimState {
                 circle_pipeline: Some(CirclePipeline::new(
@@ -75,8 +76,7 @@ impl FluidSimApp {
                 render_target: None,
                 post_processing: None,
                 camera: Camera::new([WIDTH as f32, HEIGHT as f32]),
-                // input: WinitInputHelper::default(),
-                fluid_scene: FluidScene::new(WIDTH as f32, HEIGHT as f32),
+                fluid_scene: Arc::new(Mutex::new(FluidScene::new(WIDTH as f32, HEIGHT as f32))),
                 timer: Timer::new(),
             },
             gui: None,
@@ -148,7 +148,7 @@ impl GlassApp for FluidSimApp {
                 &self.fluid_sim.camera,
             );
 
-            self.fluid_sim.fluid_scene.drag(pos, false);
+            self.fluid_sim.fluid_scene.lock().unwrap().drag(pos, false);
         }
         update_egui_with_winit_event(self, context, &window_id, event);
     }
@@ -223,7 +223,14 @@ impl GlassApp for FluidSimApp {
         //     // }
         // }
         // Simulate
-        self.fluid_sim.fluid_scene.simulate();
+
+        let fluid_scene = self.fluid_sim.fluid_scene.clone();
+
+        thread::spawn(move || {
+            fluid_scene.lock().unwrap().simulate();
+        });
+
+        // self.fluid_sim.fluid_scene.lock().unwrap().simulate();
     }
 
     fn render(
@@ -232,7 +239,6 @@ impl GlassApp for FluidSimApp {
         render_data: RenderData,
     ) -> Option<Vec<CommandBuffer>> {
         puffin::profile_function!();
-        puffin::GlobalProfiler::lock().new_frame();
 
         self.num_renders += 1;
         return Some(render(self, context, render_data));
@@ -242,6 +248,8 @@ impl GlassApp for FluidSimApp {
         puffin::profile_function!();
 
         self.fluid_sim.timer.update();
+
+        puffin::GlobalProfiler::lock().new_frame();
     }
 }
 
@@ -359,16 +367,15 @@ fn render_egui(
 
             ui.label(format!("fps: {:.2}", app.fluid_sim.timer.avg_fps()));
             ui.label(format!("inputs: {}", app.num_inputs));
-            ui.label(format!("device inputs: {}", app.num_device_inputs));
             ui.label(format!("renders: {}", app.num_renders));
-            ui.add(egui::Slider::new(
-                &mut app.fluid_sim.fluid_scene.dt,
-                0.00..=0.03,
-            ));
-            ui.add(egui::Slider::new(
-                &mut app.fluid_sim.fluid_scene.obstacle_radius,
-                0.00..=1.,
-            ));
+            // ui.add(egui::Slider::new(
+            //     &mut app.fluid_sim.fluid_scene.dt,
+            //     0.00..=0.03,
+            // ));
+            // ui.add(egui::Slider::new(
+            //     &mut app.fluid_sim.fluid_scene.obstacle_radius,
+            //     0.00..=1.,
+            // ));
         });
         // Ui content
         // ui_app.ui(egui_ctx);
@@ -447,6 +454,8 @@ fn render_scene<'a>(
         fluid_scene,
         ..
     } = state;
+    let fluid_scene = fluid_scene.lock().unwrap();
+
     let circle_pipeline = circle_pipeline.as_ref().unwrap();
     let rectangle_pipeline = rectangle_pipeline.as_ref().unwrap();
     let quad_pipeline = quad_pipeline.as_ref().unwrap();

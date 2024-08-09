@@ -151,6 +151,8 @@ impl FluidScene {
     }
 
     pub fn drag(&mut self, cursor_world_pos: Vec2, is_start: bool) {
+        puffin::profile_function!();
+
         let canvas_world_pos = cursor_world_pos + Vec2::new(self.width / 2.0, self.height / 2.0);
         let c_scale = self.width / self.tank_width;
         let tank_pos = canvas_world_pos / c_scale;
