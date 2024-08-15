@@ -53,5 +53,8 @@ jobs:
       - run: pwd
       - run: ls
       - run: ls Godottest
+      - run: ls -la Godottest/res/media
+      - run: rm -rf Godottest/res/media/.git
+      - run: ls -la Godottest/res/media
 
       - run: steamcmd +login ${{ secrets.STEAM_USERNAME }} +run_app_build "$(pwd)/manifest.vdf" +quit
