@@ -5,3 +5,4 @@ android/
 addons/
 Cargo.lock
 steam_appid.txt
+*/res/media/
