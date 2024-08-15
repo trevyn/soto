@@ -1,7 +1,13 @@
-[gd_scene load_steps=6 format=3 uid="uid://pdkn35rn7rts"]
+[gd_scene load_steps=12 format=3 uid="uid://pdkn35rn7rts"]
 
-[ext_resource type="VideoStream" path="res://res/media/output.ogv" id="1_r13cb"]
-[ext_resource type="Script" path="res://res/video_stream_player.gd" id="2_76rnb"]
+[ext_resource type="Script" path="res://res/node_2d.gd" id="1_atssm"]
+[ext_resource type="VideoStream" path="res://res/media/mainmenu-to-eyesclosedheadback.ogv" id="1_huc1b"]
+[ext_resource type="VideoStream" path="res://res/media/mainmenu-from-walkin.ogv" id="1_ila7w"]
+[ext_resource type="Script" path="res://res/node.gd" id="1_ypcjg"]
+[ext_resource type="Script" path="res://res/vsp.gd" id="2_v4qc7"]
+[ext_resource type="VideoStream" path="res://res/media/mainmenu-from-backofhead.ogv" id="5_3gsv2"]
+[ext_resource type="VideoStream" path="res://res/media/mainmenu-to-lookdownandup.ogv" id="6_3pm7c"]
+[ext_resource type="VideoStream" path="res://res/media/mainmenu-to-lookdownandshrug.ogv" id="7_g2nyq"]
 
 [sub_resource type="Theme" id="Theme_pqtiu"]
 default_font_size = 36
@@ -15,21 +21,61 @@ default_font_size = 55
 
 [node name="Node2D" type="Node2D"]
 
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_right = 1471.0
-offset_bottom = 824.0
-color = Color(0, 0, 0, 1)
+[node name="Node" type="Node" parent="."]
+script = ExtResource("1_ypcjg")
 
-[node name="VideoStreamPlayer" type="VideoStreamPlayer" parent="."]
+[node name="VideoStreamPlayer6" type="VideoStreamPlayer" parent="Node"]
 offset_right = 1280.0
 offset_bottom = 768.0
-stream = ExtResource("1_r13cb")
+stream = ExtResource("7_g2nyq")
 volume_db = -80.0
-autoplay = true
-loop = true
-script = ExtResource("2_76rnb")
+script = ExtResource("2_v4qc7")
+fadein = false
 
-[node name="Label" type="Label" parent="."]
+[node name="VideoStreamPlayer5" type="VideoStreamPlayer" parent="Node"]
+offset_right = 1280.0
+offset_bottom = 768.0
+stream = ExtResource("5_3gsv2")
+volume_db = -80.0
+script = ExtResource("2_v4qc7")
+fadeout = false
+
+[node name="VideoStreamPlayer4" type="VideoStreamPlayer" parent="Node"]
+offset_right = 1280.0
+offset_bottom = 768.0
+stream = ExtResource("6_3pm7c")
+volume_db = -80.0
+script = ExtResource("2_v4qc7")
+fadein = false
+
+[node name="VideoStreamPlayer3" type="VideoStreamPlayer" parent="Node"]
+offset_right = 1280.0
+offset_bottom = 768.0
+stream = ExtResource("5_3gsv2")
+volume_db = -80.0
+script = ExtResource("2_v4qc7")
+fadeout = false
+
+[node name="VideoStreamPlayer2" type="VideoStreamPlayer" parent="Node"]
+offset_right = 1280.0
+offset_bottom = 768.0
+stream = ExtResource("1_huc1b")
+volume_db = -80.0
+script = ExtResource("2_v4qc7")
+fadein = false
+
+[node name="VideoStreamPlayer" type="VideoStreamPlayer" parent="Node"]
+offset_right = 1280.0
+offset_bottom = 768.0
+stream = ExtResource("1_ila7w")
+volume_db = -80.0
+script = ExtResource("2_v4qc7")
+fadeout = false
+
+[node name="Node2D" type="Node2D" parent="Node"]
+script = ExtResource("1_atssm")
+
+[node name="Label" type="Label" parent="Node/Node2D"]
 offset_left = 724.0
 offset_top = 374.0
 offset_right = 956.0
@@ -38,7 +84,7 @@ theme = SubResource("Theme_pqtiu")
 text = "⇒ New Game"
 horizontal_alignment = 2
 
-[node name="Label4" type="Label" parent="."]
+[node name="Label4" type="Label" parent="Node/Node2D"]
 offset_left = 767.0
 offset_top = 326.0
 offset_right = 957.0
@@ -47,7 +93,7 @@ theme = SubResource("Theme_pqtiu")
 text = "Continue"
 horizontal_alignment = 2
 
-[node name="Label5" type="Label" parent="."]
+[node name="Label5" type="Label" parent="Node/Node2D"]
 offset_left = 444.0
 offset_top = 87.0
 offset_right = 962.0
@@ -56,7 +102,7 @@ theme = SubResource("Theme_norqa")
 text = "dungeon game"
 horizontal_alignment = 2
 
-[node name="Label2" type="Label" parent="."]
+[node name="Label2" type="Label" parent="Node/Node2D"]
 offset_left = 766.0
 offset_top = 423.0
 offset_right = 956.0
@@ -65,7 +111,7 @@ theme = SubResource("Theme_pqtiu")
 text = "Settings"
 horizontal_alignment = 2
 
-[node name="Label3" type="Label" parent="."]
+[node name="Label3" type="Label" parent="Node/Node2D"]
 offset_left = 763.0
 offset_top = 473.0
 offset_right = 953.0
