@@ -1,4 +1,4 @@
-use deckbuilder::{CoreGameState, TutorialState};
+use deckbuilder::{tutorial::TutorialState, CoreGameState};
 use std::io;
 
 fn display_recent_logs(game: &CoreGameState, num_entries: usize) {
@@ -14,7 +14,6 @@ fn display_recent_logs(game: &CoreGameState, num_entries: usize) {
     }
     println!();
 }
-
 fn main() {
     let mut game = CoreGameState::new();
 
@@ -25,13 +24,18 @@ fn main() {
 
     // Main game loop
     loop {
+        // Refresh player's mana at the start of each turn
+        game.player.restore_mana();
 
         // Check if hand is empty and draw cards if necessary
         if game.player.hand.is_empty() {
             println!("Your hand is empty. Drawing new cards...");
             for _ in 0..5 {
                 if let Some(card) = game.draw_card() {
-                    println!("Drew: {} (Attack: {}, Defense: {})", card.name, card.attack, card.defense);
+                    println!(
+                        "Drew: {} (Attack: {}, Defense: {}, Mana Cost: {})",
+                        card.name, card.attack, card.defense, card.mana_cost
+                    );
                 } else {
                     println!("No more cards to draw!");
                     break;
@@ -39,17 +43,22 @@ fn main() {
             }
         }
 
-        // Display player's hand
+        // Display player's hand and mana
         println!("Your hand:");
         for (i, card) in game.player.hand.iter().enumerate() {
             println!(
-                "{}. {} (Attack: {}, Defense: {})",
+                "{}. {} (Attack: {}, Defense: {}, Mana Cost: {})",
                 i + 1,
                 card.name,
                 card.attack,
-                card.defense
+                card.defense,
+                card.mana_cost
             );
         }
+        println!(
+            "Current Mana: {}/{}",
+            game.player.current_mana, game.player.max_mana
+        );
 
         // Player's turn
         println!(

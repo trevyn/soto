@@ -1,102 +1,112 @@
-use godot::prelude::*;
-use rand::seq::SliceRandom;
+pub mod tutorial;
 
 mod logger;
-mod tutorial;
 
-pub use tutorial::TutorialState;
+use crate::logger::GameLogger;
+use rand::seq::SliceRandom;
 
-#[derive(Clone, Debug)]
-pub struct Card {
-    pub name: String,
-    pub attack: u32,
-    pub defense: u32,
-    pub lucky: bool,
+pub struct Player {
+    pub deck: Vec<Card>,
+    pub hand: Vec<Card>,
+    pub discard_pile: Vec<Card>,
+    pub max_mana: u32,
+    pub current_mana: u32,
+    pub health: u32,
+}
+impl Player {
+    pub fn new() -> Self {
+        let mut deck = vec![
+            Card {
+                name: "Mountain Strike".to_string(),
+                attack: 3,
+                defense: 1,
+                lucky: false,
+                special_ability: None,
+                mana_cost: 1,
+            },
+            Card {
+                name: "Stone Shield".to_string(),
+                attack: 1,
+                defense: 3,
+                lucky: false,
+                special_ability: None,
+                mana_cost: 1,
+            },
+            Card {
+                name: "Avalanche".to_string(),
+                attack: 5,
+                defense: 0,
+                lucky: false,
+                special_ability: Some(SpecialAbility::SummonAvalanche(2)),
+                mana_cost: 3,
+            },
+        ];
+        deck.extend(deck.clone());
+        deck.extend(deck.clone());
+
+        Player {
+            deck,
+            hand: Vec::new(),
+            discard_pile: Vec::new(),
+            max_mana: 10,
+            current_mana: 10,
+            health: 30,
+        }
+    }
+
+    pub fn restore_mana(&mut self) {
+        self.current_mana = self.max_mana;
+    }
+
+    pub fn play_card(&mut self, card_index: usize) -> Option<Card> {
+        if card_index < self.hand.len() {
+            let card = &self.hand[card_index];
+            if self.current_mana >= card.mana_cost {
+                let card = self.hand.remove(card_index);
+                self.current_mana -= card.mana_cost;
+                Some(card)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    // ... existing methods ...
+}
+
+#[derive(Debug, Clone)]
+pub enum SpecialAbility {
+    Heal(u32),
+    DrawCards(u32),
+    ApplyPoison(u32),
+    StunEnemy(u32),
+
+    SummonAvalanche(u32),
 }
 
 pub struct CoreGameState {
     pub player: Player,
     pub enemy: Enemy,
-    pub logger: logger::GameLogger,
+    logger: GameLogger,
 }
+
 impl CoreGameState {
-    pub fn add_user_comment(&mut self, comment: String) {
-        let formatted_comment = format!("User Comment: {}", comment);
-        self.log(formatted_comment);
-    }
-    pub fn new() -> Self {
-        let mut player = Player::new();
-        player.deck = initialize_deck();
-
-        // Draw initial hand
-        for _ in 0..5 {
-            player.draw_card();
-        }
-
-        let enemy = Enemy::new(20, 2);
-        let enemy_stats = format!(
-            "Enemy stats: Health = {}, Attack = {}",
-            enemy.health, enemy.attack
-        );
-
-        let mut core_state = Self {
-            player,
-            enemy,
-            logger: logger::GameLogger::new(),
-        };
-
-        core_state.log("Game started".to_string());
-        core_state.log(enemy_stats);
-        core_state
-    }
-
     pub fn log(&mut self, message: String) {
-        self.logger.add_entry(message.clone());
+        self.logger.add_entry(message);
     }
-    pub fn draw_card(&mut self) -> Option<Card> {
-        if self.player.deck.is_empty() && !self.player.discard_pile.is_empty() {
-            self.player.deck.append(&mut self.player.discard_pile);
-            self.player.deck.shuffle(&mut rand::thread_rng());
-            self.log("Discard pile reshuffled into deck.".to_string());
-        }
-        if let Some(mut card) = self.player.draw_card() {
-            let is_lucky = rand::random::<f32>() < 0.1; // 10% chance for a Lucky Draw
-            if is_lucky {
-                card.lucky = true;
-                card.attack += 1;
-                card.defense += 1;
-                self.log(format!("Lucky Draw! {} got +1 attack and +1 defense.", card.name));
-            }
-            self.log(format!("Drew a card: {} (Attack: {}, Defense: {})", card.name, card.attack, card.defense));
-            Some(card)
-        } else if self.player.hand.is_empty() && self.player.deck.is_empty() {
-            self.log("No more cards available to draw.".to_string());
-            None
-        } else {
-            None
-        }
+
+    pub fn get_log(&self) -> &[String] {
+        self.logger.get_log()
     }
-    pub fn play_card(&mut self, card_index: i32) -> String {
-        if card_index < 0 || card_index as usize >= self.player.hand.len() {
-            let message = "Invalid card index".to_string();
-            self.log(message.clone());
-            return message;
-        }
-        if self.player.hand.is_empty() {
-            let message = "No cards in hand".to_string();
-            self.log(message.clone());
-            return message;
-        }
-        let card = self.player.hand.remove(card_index as usize);
-        let result = handle_combat(&mut self.player, &mut self.enemy, &card);
-        self.log(format!("Played card: {}. {}", card.name, result));
-        self.player.discard_pile.push(card);
-        result
+
+    pub fn add_user_comment(&mut self, comment: String) {
+        self.log(format!("User comment: {}", comment));
     }
-    pub fn enemy_turn(&mut self) {
-        let damage = self.enemy.attack;
-        self.player.health = self.player.health.saturating_sub(damage);
-        self.log(format!("Enemy attacks! You take {} damage. Your current health: {}", damage, self.player.health));
+
+    pub fn get_hand(&self) -> &[Card] {
+        &self.player.hand
     }
 
     pub fn get_player_health(&self) -> u32 {
@@ -107,277 +117,304 @@ impl CoreGameState {
         self.enemy.health
     }
 
-    pub fn get_hand(&self) -> Vec<Card> {
-        self.player.hand.clone()
-    }
-
-    pub fn get_enemy_attack(&self) -> u32 {
-        self.enemy.attack
-    }
-
     pub fn check_game_over(&self) -> Option<String> {
-        is_game_over(&self.player, &self.enemy)
-    }
-
-    pub fn get_log(&self) -> &[String] {
-        self.logger.get_log()
-    }
-}
-
-#[derive(GodotClass)]
-#[class(base=Node)]
-pub struct GameState {
-    #[base]
-    base: Base<Node>,
-    core: CoreGameState,
-    tutorial: Option<TutorialState>,
-}
-
-#[godot_api]
-impl GameState {
-    #[func]
-    pub fn start_tutorial(&mut self) {
-        self.tutorial = Some(TutorialState::new());
-    }
-
-    #[func]
-    pub fn get_tutorial_instruction(&self) -> GString {
-        if let Some(tutorial) = &self.tutorial {
-            GString::from(tutorial.get_current_instruction())
-        } else {
-            GString::from("Tutorial not started")
-        }
-    }
-
-    #[func]
-    pub fn handle_tutorial_input(&mut self, input: GString) -> GString {
-        if let Some(tutorial) = &mut self.tutorial {
-            let response = tutorial.handle_input(&input.to_string());
-            if tutorial.is_complete() {
-                self.tutorial = None;
-            }
-            GString::from(response)
-        } else {
-            GString::from("Tutorial not started")
-        }
-    }
-
-    #[func]
-    pub fn add_user_comment(&mut self, comment: GString) {
-        self.core.add_user_comment(comment.to_string());
-    }
-
-    #[func]
-    pub fn get_log(&self) -> Vec<GString> {
-        self.core
-            .logger
-            .get_log()
-            .iter()
-            .map(|s| GString::from(s))
-            .collect()
-    }
-
-    pub fn new(base: Base<Node>) -> Self {
-        Self {
-            base,
-            core: CoreGameState::new(),
-            tutorial: None,
-        }
-    }
-
-    #[func]
-    pub fn draw_card(&mut self) {
-        self.core.draw_card();
-    }
-
-    #[func]
-    pub fn play_card(&mut self, card_index: i32) -> GString {
-        GString::from(self.core.play_card(card_index))
-    }
-    #[func]
-    pub fn enemy_turn(&mut self) {
-        let damage = self.core.enemy.attack;
-        self.core.player.health = self.core.player.health.saturating_sub(damage);
-        godot_print!("Enemy attacks! You take {} damage. Your current health: {}", damage, self.core.player.health);
-    }
-
-    #[func]
-    pub fn get_player_health(&self) -> u32 {
-        self.core.player.health
-    }
-
-    #[func]
-    pub fn get_enemy_health(&self) -> u32 {
-        self.core.enemy.health
-    }
-
-    #[func]
-    pub fn get_hand(&self) -> Vec<Dictionary> {
-        self.core
-            .player
-            .hand
-            .iter()
-            .map(|card| {
-                let mut dict = Dictionary::new();
-                dict.insert("name", card.name.clone()).unwrap();
-                dict.insert("attack", card.attack).unwrap();
-                dict.insert("defense", card.defense).unwrap();
-                dict
-            })
-            .collect()
-    }
-
-    #[func]
-    pub fn get_enemy_attack(&self) -> u32 {
-        self.core.enemy.attack
-    }
-
-    #[func]
-    pub fn check_game_over(&self) -> GString {
-        match is_game_over(&self.core.player, &self.core.enemy) {
-            Some(message) => GString::from(message),
-            None => GString::new(),
-        }
-    }
-
-    #[func]
-    pub fn is_tutorial_active(&self) -> bool {
-        self.tutorial.is_some()
-    }
-}
-
-#[godot_api]
-impl INode for GameState {
-    fn init(base: Base<Node>) -> Self {
-        Self {
-            base,
-            core: CoreGameState::new(),
-            tutorial: None,
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct Player {
-    pub deck: Vec<Card>,
-    pub hand: Vec<Card>,
-    pub discard_pile: Vec<Card>,
-    pub health: u32,
-}
-
-impl Player {
-    pub fn new() -> Self {
-        Player {
-            deck: Vec::new(),
-            hand: Vec::new(),
-            discard_pile: Vec::new(),
-            health: 30,
-        }
-    }
-    pub fn draw_card(&mut self) -> Option<Card> {
-        if let Some(mut card) = self.deck.pop() {
-            let is_lucky = rand::random::<f32>() < 0.1; // 10% chance for a Lucky Draw
-            if is_lucky {
-                card.lucky = true;
-                card.attack += 1;
-                card.defense += 1;
-            }
-            self.hand.push(card.clone());
-            Some(card)
+        if self.player.health == 0 {
+            Some("Game Over: You have been defeated!".to_string())
+        } else if self.enemy.health == 0 {
+            Some("Congratulations! You have defeated the enemy!".to_string())
         } else {
             None
         }
     }
-
-    pub fn reshuffle_discard(&mut self) {
-        self.deck.append(&mut self.discard_pile);
-        self.deck.shuffle(&mut rand::thread_rng());
-    }
-
 }
 
-#[derive(Default)]
+impl CoreGameState {
+    pub fn draw_card(&mut self) -> Option<Card> {
+        if self.player.deck.is_empty() {
+            self.player.deck.append(&mut self.player.discard_pile);
+            self.player.deck.shuffle(&mut rand::thread_rng());
+        }
+        self.player.deck.pop().map(|card| {
+            self.player.hand.push(card.clone());
+            card
+        })
+    }
+
+    pub fn handle_combat(&mut self, card: &Card) -> String {
+        let enemy_health_before = self.enemy.health;
+        let player_health_before = self.player.health;
+
+        // Apply card effects
+        let damage_dealt = self.enemy.take_damage(card.attack);
+        self.player.health = self.player.health.saturating_add(card.defense);
+
+        // Handle special ability if present
+        if let Some(ability) = &card.special_ability {
+            self.handle_special_ability(ability);
+        }
+
+        // Enemy counterattack
+        if self.enemy.health > 0 {
+            let damage_taken = self.enemy.attack.saturating_sub(card.defense);
+            self.player.health = self.player.health.saturating_sub(damage_taken);
+        }
+
+        format!(
+            "You dealt {} damage. Enemy health: {} -> {}. Your health: {} -> {}.",
+            damage_dealt,
+            enemy_health_before,
+            self.enemy.health,
+            player_health_before,
+            self.player.health
+        )
+    }
+
+    // ... existing methods ...
+
+    pub fn handle_special_ability(&mut self, ability: &SpecialAbility) {
+        match ability {
+            SpecialAbility::Heal(amount) => {
+                self.player.health += amount;
+                self.log(format!("Player healed for {} health", amount));
+                self.log(format!(
+                    "{} scoffs: \"Your pitiful healing won't save you!\"",
+                    self.enemy.name
+                ));
+            }
+            SpecialAbility::DrawCards(amount) => {
+                for _ in 0..*amount {
+                    if let Some(card) = self.draw_card() {
+                        self.log(format!("Player drew: {}", card.name));
+                    }
+                }
+                self.log(format!(
+                    "{} taunts: \"Draw all you want, it won't change your fate!\"",
+                    self.enemy.name
+                ));
+            }
+            SpecialAbility::ApplyPoison(amount) => {
+                self.enemy.apply_poison(*amount);
+                self.log(format!("Applied {} poison to the enemy", amount));
+            }
+            SpecialAbility::StunEnemy(duration) => {
+                self.enemy.apply_stun(*duration);
+                self.log(format!("Stunned the enemy for {} turns", duration));
+            }
+
+            SpecialAbility::SummonAvalanche(damage) => {
+                let actual_damage = self.enemy.take_damage(*damage);
+                self.log(format!(
+                    "You summon an avalanche, dealing {} damage to the enemy!",
+                    actual_damage
+                ));
+                self.log(format!(
+                    "{} roars: \"Your pathetic avalanche is nothing compared to my mountain-forged armor!\"",
+                    self.enemy.name
+                ));
+            }
+        }
+    }
+    pub fn new() -> Self {
+        let enemy = Enemy::new(
+            "Mountain Sentinel".to_string(),
+            20,
+            2,
+            vec![
+                "Your primitive tactics are no match for my ancient strength!".to_string(),
+                "Prepare to be crushed beneath the weight of these peaks, human!".to_string(),
+                "Your defeat is as certain as the eternal snow on these mountaintops!".to_string(),
+                "Initiating avalanche protocols...".to_string(),
+                "Your extinction is inevitable. Surrender now and become one with the mountain!"
+                    .to_string(),
+            ],
+        );
+        let enemy_stats = format!(
+            "Enemy stats: {} - Health = {}, Attack = {}",
+            enemy.name, enemy.health, enemy.attack
+        );
+
+        let mut core_state = Self {
+            player: Player::new(),
+            enemy,
+            logger: GameLogger::new(),
+        };
+
+        core_state.log("The crisp mountain air suddenly turns electric, a surge of cosmic energy rippling through the ancient peaks!".to_string());
+        core_state.log("The rugged landscape itself seems to warp and bend as an otherworldly presence begins to materialize...".to_string());
+        core_state.log(format!("With a thunderous roar that echoes off the mountain walls, the {} emerges from a portal torn into the fabric of reality! Its form, a terrifying fusion of advanced alien technology and raw, destructive power, looms against the backdrop of snow-capped summits.", core_state.enemy.name));
+        core_state.log("Rocks crumble from nearby cliffs, and you feel the weight of impending doom pressing down on you, as heavy as the mountains themselves.".to_string());
+        core_state.log(format!("The {}'s eyes, glowing with an eerie red light that outshines even the setting sun, scan you coldly. You feel as if your very soul is being analyzed.", core_state.enemy.name));
+        core_state.log("The thin mountain air grows thick with tension, humming with the weight of the coming battle.".to_string());
+        core_state.log(format!("{}'s cybernetic eyes pulse with an unholy red glow, scanning you with cold, calculated malice that seems to freeze the very air around you.", core_state.enemy.name));
+        core_state.log(enemy_stats);
+        core_state.log(format!(
+            "Standing tall against the mountainous backdrop, {}'s glowing red eyes fix upon you as it unleashes a chilling declaration:",
+            core_state.enemy.name
+        ));
+        core_state.log(format!("\"{}\"", core_state.enemy.taunt()));
+        core_state.log("The very rocks beneath your feet seem to tremble. Here, amidst the towering peaks, the battle for the fate of your world begins NOW!".to_string());
+
+        // Draw initial hand
+        for _ in 0..5 {
+            if let Some(card) = core_state.draw_card() {
+                core_state.log(format!("You draw: {}", card.name));
+            }
+        }
+
+        core_state
+    }
+
+    pub fn play_card(&mut self, card_index: i32) -> String {
+        if card_index < 0 || card_index as usize >= self.player.hand.len() {
+            return "Invalid card index".to_string();
+        }
+        if let Some(card) = self.player.play_card(card_index as usize) {
+            let mut result = self.handle_combat(&card);
+            if self.enemy.health > 0 {
+                result.push_str(&format!(
+                    "\n{} reacts: \"{}\"",
+                    self.enemy.name,
+                    self.enemy.taunt()
+                ));
+            } else {
+                result.push_str(&format!(
+                    "\n{} wails: \"Impossible! I cannot be defeated by a mere human!\"",
+                    self.enemy.name
+                ));
+            }
+            self.log(format!(
+                "Played card: {} (Mana cost: {}). {}",
+                card.name, card.mana_cost, result
+            ));
+            result
+        } else {
+            "Not enough mana to play this card".to_string()
+        }
+    }
+
+    pub fn enemy_turn(&mut self) {
+        let poison_damage = self.enemy.take_poison_damage();
+        if poison_damage > 0 {
+            self.log(format!(
+                "{} took {} poison damage",
+                self.enemy.name, poison_damage
+            ));
+            self.log(format!(
+                "{} hisses: \"Your toxins are mere annoyances to my superior systems!\"",
+                self.enemy.name
+            ));
+        }
+        if self.enemy.health > 0 {
+            if self.enemy.is_stunned() {
+                self.log(format!("{} is stunned and cannot attack!", self.enemy.name));
+                self.log(format!(
+                    "{} growls: \"This... delay... changes nothing!\"",
+                    self.enemy.name
+                ));
+            } else {
+                let damage = self.enemy.attack;
+                self.player.health = self.player.health.saturating_sub(damage);
+                self.log(format!(
+                    "{} attacks! You take {} damage. Your current health: {}",
+                    self.enemy.name, damage, self.player.health
+                ));
+                self.log(format!(
+                    "{} taunts: \"{}\"",
+                    self.enemy.name,
+                    self.enemy.taunt()
+                ));
+            }
+        }
+    }
+}
+
 pub struct Enemy {
+    pub name: String,
     pub health: u32,
     pub attack: u32,
+    pub poison: u32,
+    pub taunts: Vec<String>,
+    pub stunned: u32,
+    pub shield: u32,
+    pub rage: u32,
 }
 
 impl Enemy {
-    pub fn new(health: u32, attack: u32) -> Self {
-        Enemy { health, attack }
-    }
-}
-pub fn handle_combat(player: &mut Player, enemy: &mut Enemy, card: &Card) -> String {
-    let mut combat_log = String::new();
-
-    // Player attacks enemy
-    let enemy_health_before = enemy.health;
-    enemy.health = enemy.health.saturating_sub(card.attack);
-    let damage_dealt = enemy_health_before - enemy.health;
-    combat_log.push_str(&format!(
-        "You attack with {}. Enemy takes {} damage.",
-        card.name, damage_dealt
-    ));
-
-    // Enemy counterattacks if still alive
-    if enemy.health > 0 {
-        let enemy_attack = enemy.attack;
-        let damage_blocked = enemy_attack.saturating_sub(card.defense);
-        let damage_taken = damage_blocked;
-        player.health = player.health.saturating_sub(damage_taken);
-        combat_log.push_str(&format!(
-            "\nEnemy counterattacks with {} damage. ",
-            enemy_attack
-        ));
-        if damage_blocked < enemy_attack {
-            combat_log.push_str(&format!(
-                "You block {} damage with your {}'s defense. ",
-                enemy_attack - damage_blocked,
-                card.name
-            ));
+    pub fn new(name: String, health: u32, attack: u32, taunts: Vec<String>) -> Self {
+        Enemy {
+            name,
+            health,
+            attack,
+            poison: 0,
+            taunts,
+            stunned: 0,
+            shield: 0,
+            rage: 0,
         }
-        combat_log.push_str(&format!("You take {} damage.", damage_taken));
     }
 
-    combat_log
+    pub fn apply_shield(&mut self, amount: u32) {
+        self.shield = self.shield.saturating_add(amount);
+    }
+
+    pub fn increase_rage(&mut self, amount: u32) {
+        self.rage = self.rage.saturating_add(amount);
+        if self.rage >= 100 {
+            self.attack += 1;
+            self.rage = 0;
+        }
+    }
+
+    pub fn take_damage(&mut self, amount: u32) -> u32 {
+        let damage_after_shield = amount.saturating_sub(self.shield);
+        self.shield = self.shield.saturating_sub(amount);
+        self.health = self.health.saturating_sub(damage_after_shield);
+        self.increase_rage(damage_after_shield);
+        damage_after_shield
+    }
+
+    pub fn taunt(&self) -> &str {
+        static DEFAULT_TAUNT: &str = "...";
+        self.taunts
+            .choose(&mut rand::thread_rng())
+            .map(String::as_str)
+            .unwrap_or(DEFAULT_TAUNT)
+    }
+
+    pub fn apply_stun(&mut self, duration: u32) {
+        self.stunned = self.stunned.saturating_add(duration);
+    }
+
+    pub fn is_stunned(&mut self) -> bool {
+        if self.stunned > 0 {
+            self.stunned -= 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn apply_poison(&mut self, amount: u32) {
+        self.poison += amount;
+    }
+
+    pub fn take_poison_damage(&mut self) -> u32 {
+        let damage = self.poison;
+        self.health = self.health.saturating_sub(damage);
+        self.poison = self.poison.saturating_sub(1);
+        if damage > 0 {
+            println!("{} sizzles: \"Your poison... it burns!\"", self.name);
+        }
+        damage
+    }
 }
-pub fn initialize_deck() -> Vec<Card> {
-    let initial_cards = vec![
-        Card {
-            name: "Warrior".to_string(),
-            attack: 3,
-            defense: 2,
-            lucky: false,
-        },
-        Card {
-            name: "Archer".to_string(),
-            attack: 2,
-            defense: 1,
-            lucky: false,
-        },
-        Card {
-            name: "Knight".to_string(),
-            attack: 4,
-            defense: 4,
-            lucky: false,
-        },
-    ];
 
-    let mut deck = Vec::new();
-    for _ in 0..5 {
-        deck.extend(initial_cards.clone());
-    }
-
-    deck.shuffle(&mut rand::thread_rng());
-    deck
-}
-
-pub fn is_game_over(player: &Player, enemy: &Enemy) -> Option<String> {
-    if player.health <= 0 {
-        Some("Game Over! You lost.".to_string())
-    } else if enemy.health <= 0 {
-        Some("Congratulations! You defeated the enemy.".to_string())
-    } else {
-        None
-    }
+#[derive(Clone, Debug)]
+pub struct Card {
+    pub name: String,
+    pub attack: u32,
+    pub defense: u32,
+    pub lucky: bool,
+    pub special_ability: Option<SpecialAbility>,
+    pub mana_cost: u32,
 }
