@@ -1,14 +1,13 @@
 use deckbuilder::{tutorial::TutorialState, CoreGameState};
 use std::io;
 
-fn display_recent_logs(game: &CoreGameState, num_entries: usize) {
+fn display_full_log(game: &CoreGameState) {
     let log = game.get_log();
     if log.is_empty() {
-        println!("No recent game log entries.");
+        println!("No game log entries.");
     } else {
-        println!("Recent game log:");
-        let entries: Vec<_> = log.iter().take(num_entries).collect();
-        for entry in entries.iter() {
+        println!("Full game log:");
+        for entry in log.iter() {
             println!("  {}", entry);
         }
     }
@@ -24,6 +23,14 @@ fn main() {
 
     // Main game loop
     loop {
+        // Increment turn counter
+        game.increment_turn();
+
+        println!("Turn {}", game.get_turn_count());
+
+        // Handle turn-based events
+        game.handle_turn_events();
+
         // Refresh player's mana at the start of each turn
         game.player.restore_mana();
 
@@ -136,8 +143,8 @@ fn main() {
         game.enemy_turn();
         println!("Player Health: {}", game.get_player_health());
 
-        // Display recent log entries
-        display_recent_logs(&game, 5);
+        // Display full game log
+        display_full_log(&game);
 
         // Check for win/lose conditions
         if let Some(game_over_message) = game.check_game_over() {

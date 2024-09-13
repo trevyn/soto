@@ -90,9 +90,46 @@ pub struct CoreGameState {
     pub player: Player,
     pub enemy: Enemy,
     logger: GameLogger,
+    turn_counter: u32,
 }
 
 impl CoreGameState {
+    pub fn get_turn_count(&self) -> u32 {
+        self.turn_counter
+    }
+
+    pub fn handle_turn_events(&mut self) {
+        let event = rand::random::<f32>();
+
+        if event < 0.1 {
+            self.log("A sudden gust of wind sweeps across the battlefield!".to_string());
+            self.player.health = self.player.health.saturating_add(1);
+            self.enemy.health = self.enemy.health.saturating_add(1);
+            self.log("Both you and the enemy recover 1 health.".to_string());
+        } else if event < 0.2 {
+            self.log("The ground trembles beneath your feet!".to_string());
+            let damage = rand::random::<u32>() % 3 + 1;
+            self.player.health = self.player.health.saturating_sub(damage);
+            self.enemy.health = self.enemy.health.saturating_sub(damage);
+            self.log(format!("Both you and the enemy take {} damage.", damage));
+        } else if event < 0.3 {
+            self.log("A mysterious energy fills the air...".to_string());
+            self.player.max_mana = self.player.max_mana.saturating_add(1);
+            self.player.current_mana = self.player.current_mana.saturating_add(1);
+            self.log("Your maximum mana increases by 1!".to_string());
+        } else if event < 0.4 {
+            self.log("The mountain's ancient power surges through you!".to_string());
+            if let Some(card) = self.draw_card() {
+                self.log(format!("You draw an extra card: {}", card.name));
+            }
+        }
+    }
+
+    pub fn increment_turn(&mut self) {
+        self.turn_counter += 1;
+        self.log(format!("Turn {} begins", self.turn_counter));
+    }
+
     pub fn log(&mut self, message: String) {
         self.logger.add_entry(message);
     }
@@ -139,18 +176,17 @@ impl CoreGameState {
             card
         })
     }
-
     pub fn handle_combat(&mut self, card: &Card) -> String {
         let enemy_health_before = self.enemy.health;
         let player_health_before = self.player.health;
 
         // Apply card effects
-        let damage_dealt = self.enemy.take_damage(card.attack);
+        let mut damage_dealt = self.enemy.take_damage(card.attack);
         self.player.health = self.player.health.saturating_add(card.defense);
 
         // Handle special ability if present
         if let Some(ability) = &card.special_ability {
-            self.handle_special_ability(ability);
+            damage_dealt += self.handle_special_ability(ability);
         }
 
         // Enemy counterattack
@@ -171,15 +207,17 @@ impl CoreGameState {
 
     // ... existing methods ...
 
-    pub fn handle_special_ability(&mut self, ability: &SpecialAbility) {
+    pub fn handle_special_ability(&mut self, ability: &SpecialAbility) -> u32 {
         match ability {
             SpecialAbility::Heal(amount) => {
-                self.player.health += amount;
-                self.log(format!("Player healed for {} health", amount));
+                let heal_amount = self.player.health.saturating_add(*amount) - self.player.health;
+                self.player.health += heal_amount;
+                self.log(format!("Player healed for {} health", heal_amount));
                 self.log(format!(
                     "{} scoffs: \"Your pitiful healing won't save you!\"",
                     self.enemy.name
                 ));
+                0
             }
             SpecialAbility::DrawCards(amount) => {
                 for _ in 0..*amount {
@@ -191,16 +229,18 @@ impl CoreGameState {
                     "{} taunts: \"Draw all you want, it won't change your fate!\"",
                     self.enemy.name
                 ));
+                0
             }
             SpecialAbility::ApplyPoison(amount) => {
                 self.enemy.apply_poison(*amount);
                 self.log(format!("Applied {} poison to the enemy", amount));
+                0
             }
             SpecialAbility::StunEnemy(duration) => {
                 self.enemy.apply_stun(*duration);
                 self.log(format!("Stunned the enemy for {} turns", duration));
+                0
             }
-
             SpecialAbility::SummonAvalanche(damage) => {
                 let actual_damage = self.enemy.take_damage(*damage);
                 self.log(format!(
@@ -211,6 +251,7 @@ impl CoreGameState {
                     "{} roars: \"Your pathetic avalanche is nothing compared to my mountain-forged armor!\"",
                     self.enemy.name
                 ));
+                actual_damage
             }
         }
     }
@@ -237,6 +278,7 @@ impl CoreGameState {
             player: Player::new(),
             enemy,
             logger: GameLogger::new(),
+            turn_counter: 0,
         };
 
         core_state.log("The crisp mountain air suddenly turns electric, a surge of cosmic energy rippling through the ancient peaks!".to_string());
@@ -254,45 +296,60 @@ impl CoreGameState {
         core_state.log(format!("\"{}\"", core_state.enemy.taunt()));
         core_state.log("The very rocks beneath your feet seem to tremble. Here, amidst the towering peaks, the battle for the fate of your world begins NOW!".to_string());
 
-        // Draw initial hand
+        // Add player introduction
+        core_state.log("\nYou stand at the edge of a narrow mountain pass, the wind whipping around you, carrying the scent of snow and distant pine forests.".to_string());
+        core_state.log("Your breath mists in the cold air as you face the Mountain Sentinel, your hand instinctively reaching for your deck of mystical cards.".to_string());
+        core_state.log("The ancient spirits of the mountains seem to whisper encouragement as you prepare to defend your world from this otherworldly threat.".to_string());
+
+        // Draw initial hand with enhanced descriptions
+        core_state.log("\nYou draw your initial hand:".to_string());
         for _ in 0..5 {
             if let Some(card) = core_state.draw_card() {
-                core_state.log(format!("You draw: {}", card.name));
+                core_state.log(format!("- {}: A card infused with the power of {} (Attack: {}, Defense: {}, Mana Cost: {})",
+                    card.name,
+                    card.name.to_lowercase(),
+                    card.attack,
+                    card.defense,
+                    card.mana_cost
+                ));
             }
         }
 
         core_state
     }
-
     pub fn play_card(&mut self, card_index: i32) -> String {
         if card_index < 0 || card_index as usize >= self.player.hand.len() {
             return "Invalid card index".to_string();
         }
         if let Some(card) = self.player.play_card(card_index as usize) {
-            let mut result = self.handle_combat(&card);
-            if self.enemy.health > 0 {
-                result.push_str(&format!(
-                    "\n{} reacts: \"{}\"",
-                    self.enemy.name,
-                    self.enemy.taunt()
-                ));
-            } else {
-                result.push_str(&format!(
-                    "\n{} wails: \"Impossible! I cannot be defeated by a mere human!\"",
-                    self.enemy.name
-                ));
-            }
-            self.log(format!(
+            let result = self.handle_combat(&card);
+            let mut log_message = format!(
                 "Played card: {} (Mana cost: {}). {}",
                 card.name, card.mana_cost, result
-            ));
-            result
+            );
+
+            if self.enemy.health > 0 {
+                let enemy_reaction =
+                    format!("\n{} reacts: \"{}\"", self.enemy.name, self.enemy.taunt());
+                log_message.push_str(&enemy_reaction);
+            } else {
+                let enemy_defeat = format!(
+                    "\n{} wails: \"Impossible! I cannot be defeated by a mere human!\"",
+                    self.enemy.name
+                );
+                log_message.push_str(&enemy_defeat);
+            }
+
+            self.log(log_message.clone());
+            log_message
         } else {
             "Not enough mana to play this card".to_string()
         }
     }
 
     pub fn enemy_turn(&mut self) {
+        self.handle_turn_events();
+
         let poison_damage = self.enemy.take_poison_damage();
         if poison_damage > 0 {
             self.log(format!(
@@ -312,7 +369,17 @@ impl CoreGameState {
                     self.enemy.name
                 ));
             } else {
-                let damage = self.enemy.attack;
+                let mut damage = self.enemy.attack;
+
+                // Turn-based event: Enemy power surge
+                if self.turn_counter % 3 == 0 {
+                    damage += 1;
+                    self.log(format!(
+                        "{} surges with power, increasing its attack!",
+                        self.enemy.name
+                    ));
+                }
+
                 self.player.health = self.player.health.saturating_sub(damage);
                 self.log(format!(
                     "{} attacks! You take {} damage. Your current health: {}",
