@@ -10,10 +10,34 @@ permissions:
   contents: read
 
 env:
-  GODOT_VERSION: 4.3-stable
+  GODOT_VERSION: 4.4-dev2
 
 jobs:
+  assign:
+    name: assign build_id
+    runs-on: ubuntu-latest
+    steps:
+      - run: wget https://github.com/trevyn/animal-time/releases/latest/download/animal-time
+      - run: chmod +x animal-time
+      - run: ./animal-time > build_id
+      - run: cat build_id
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build_id
+          path: build_id
+
+  build-windows:
+    needs: [assign]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup default stable && rustup update stable
+      - run: cargo build --release --lib
+        working-directory: "deckbuilder"
+
   publish:
+    needs: [build-windows]
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
 

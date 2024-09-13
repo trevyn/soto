@@ -1,0 +1,17 @@
+[package]
+name = "deckbuilder"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "deckbuilder"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "deckbuilder_cli"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.8"
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
