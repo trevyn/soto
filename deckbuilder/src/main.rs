@@ -25,6 +25,20 @@ fn main() {
 
     // Main game loop
     loop {
+
+        // Check if hand is empty and draw cards if necessary
+        if game.player.hand.is_empty() {
+            println!("Your hand is empty. Drawing new cards...");
+            for _ in 0..5 {
+                if let Some(card) = game.draw_card() {
+                    println!("Drew: {} (Attack: {}, Defense: {})", card.name, card.attack, card.defense);
+                } else {
+                    println!("No more cards to draw!");
+                    break;
+                }
+            }
+        }
+
         // Display player's hand
         println!("Your hand:");
         for (i, card) in game.player.hand.iter().enumerate() {

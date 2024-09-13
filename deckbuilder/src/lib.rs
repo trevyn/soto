@@ -11,6 +11,7 @@ pub struct Card {
     pub name: String,
     pub attack: u32,
     pub defense: u32,
+    pub lucky: bool,
 }
 
 pub struct CoreGameState {
@@ -52,11 +53,29 @@ impl CoreGameState {
     pub fn log(&mut self, message: String) {
         self.logger.add_entry(message.clone());
     }
-
-    pub fn draw_card(&mut self) {
-        self.player.draw_card();
+    pub fn draw_card(&mut self) -> Option<Card> {
+        if self.player.deck.is_empty() && !self.player.discard_pile.is_empty() {
+            self.player.deck.append(&mut self.player.discard_pile);
+            self.player.deck.shuffle(&mut rand::thread_rng());
+            self.log("Discard pile reshuffled into deck.".to_string());
+        }
+        if let Some(mut card) = self.player.draw_card() {
+            let is_lucky = rand::random::<f32>() < 0.1; // 10% chance for a Lucky Draw
+            if is_lucky {
+                card.lucky = true;
+                card.attack += 1;
+                card.defense += 1;
+                self.log(format!("Lucky Draw! {} got +1 attack and +1 defense.", card.name));
+            }
+            self.log(format!("Drew a card: {} (Attack: {}, Defense: {})", card.name, card.attack, card.defense));
+            Some(card)
+        } else if self.player.hand.is_empty() && self.player.deck.is_empty() {
+            self.log("No more cards available to draw.".to_string());
+            None
+        } else {
+            None
+        }
     }
-
     pub fn play_card(&mut self, card_index: i32) -> String {
         if card_index < 0 || card_index as usize >= self.player.hand.len() {
             let message = "Invalid card index".to_string();
@@ -71,13 +90,13 @@ impl CoreGameState {
         let card = self.player.hand.remove(card_index as usize);
         let result = handle_combat(&mut self.player, &mut self.enemy, &card);
         self.log(format!("Played card: {}. {}", card.name, result));
+        self.player.discard_pile.push(card);
         result
     }
-
     pub fn enemy_turn(&mut self) {
         let damage = self.enemy.attack;
         self.player.health = self.player.health.saturating_sub(damage);
-        self.log(format!("Enemy attacks! You take {} damage.", damage));
+        self.log(format!("Enemy attacks! You take {} damage. Your current health: {}", damage, self.player.health));
     }
 
     pub fn get_player_health(&self) -> u32 {
@@ -179,7 +198,7 @@ impl GameState {
     pub fn enemy_turn(&mut self) {
         let damage = self.core.enemy.attack;
         self.core.player.health = self.core.player.health.saturating_sub(damage);
-        godot_print!("Enemy attacks! You take {} damage.", damage);
+        godot_print!("Enemy attacks! You take {} damage. Your current health: {}", damage, self.core.player.health);
     }
 
     #[func]
@@ -242,6 +261,7 @@ impl INode for GameState {
 pub struct Player {
     pub deck: Vec<Card>,
     pub hand: Vec<Card>,
+    pub discard_pile: Vec<Card>,
     pub health: u32,
 }
 
@@ -250,15 +270,30 @@ impl Player {
         Player {
             deck: Vec::new(),
             hand: Vec::new(),
+            discard_pile: Vec::new(),
             health: 30,
         }
     }
-
-    pub fn draw_card(&mut self) {
-        if let Some(card) = self.deck.pop() {
-            self.hand.push(card);
+    pub fn draw_card(&mut self) -> Option<Card> {
+        if let Some(mut card) = self.deck.pop() {
+            let is_lucky = rand::random::<f32>() < 0.1; // 10% chance for a Lucky Draw
+            if is_lucky {
+                card.lucky = true;
+                card.attack += 1;
+                card.defense += 1;
+            }
+            self.hand.push(card.clone());
+            Some(card)
+        } else {
+            None
         }
     }
+
+    pub fn reshuffle_discard(&mut self) {
+        self.deck.append(&mut self.discard_pile);
+        self.deck.shuffle(&mut rand::thread_rng());
+    }
+
 }
 
 #[derive(Default)]
@@ -306,23 +341,25 @@ pub fn handle_combat(player: &mut Player, enemy: &mut Enemy, card: &Card) -> Str
 
     combat_log
 }
-
 pub fn initialize_deck() -> Vec<Card> {
     let initial_cards = vec![
         Card {
             name: "Warrior".to_string(),
             attack: 3,
             defense: 2,
+            lucky: false,
         },
         Card {
             name: "Archer".to_string(),
             attack: 2,
             defense: 1,
+            lucky: false,
         },
         Card {
             name: "Knight".to_string(),
             attack: 4,
             defense: 4,
+            lucky: false,
         },
     ];
 
