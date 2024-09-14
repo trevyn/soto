@@ -1,3 +1,37 @@
+use godot::prelude::*;
+
+// #![allow(unused)]
+fn main() {
+    struct MyExtension;
+
+    #[gdextension]
+    unsafe impl ExtensionLibrary for MyExtension {}
+}
+
+use godot::classes::{INode, Node};
+
+#[derive(GodotClass)]
+#[class(base=Node)]
+struct MyPlayer {
+    speed: f64,
+    angular_speed: f64,
+
+    base: Base<Node>,
+}
+
+#[godot_api]
+impl INode for MyPlayer {
+    fn init(base: Base<Node>) -> Self {
+        godot_print!("Hello, worldd!"); // Prints to the Godot console
+
+        Self {
+            speed: 400.0,
+            angular_speed: std::f64::consts::PI,
+            base,
+        }
+    }
+}
+
 pub mod tutorial;
 
 mod logger;
