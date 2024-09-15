@@ -13,14 +13,12 @@ pub struct GameManager {
     #[base]
     base: Base<Node>,
 }
-
 #[godot_api]
 impl INode for GameManager {
     fn init(base: Base<Node>) -> Self {
         godot_print!("GameManager initialized!");
         Self { base }
     }
-
     fn ready(&mut self) {
         godot_print!("GameManager ready() called");
         let my_player = MyPlayer::new_alloc();
@@ -29,13 +27,42 @@ impl INode for GameManager {
             .add_child(my_player.clone().upcast::<Node>());
         godot_print!("MyPlayer added as child to GameManager");
 
-        let player_node = self.base().get_node_as::<MyPlayer>("MyPlayer");
-        godot_print!("MyPlayer found in scene tree: {:?}", player_node);
+        // Create a one-shot timer for delayed execution
+        let mut timer = godot::classes::Timer::new_alloc();
+        timer.set_one_shot(true);
+        timer.set_wait_time(0.1); // 100ms delay
+        godot_print!("Timer created: {:?}", timer);
+        timer.connect(
+            "timeout".into(),
+            self.base().callable("search_for_my_player"),
+        );
+        godot_print!("Timer connected to search_for_my_player");
+        let timer_clone = timer.clone();
+        self.base_mut()
+            .add_child(timer_clone.upcast::<godot::classes::Timer>());
+        godot_print!("Timer added as child to GameManager");
+        timer.start();
+        godot_print!("Timer started");
     }
 }
 
 #[godot_api]
 impl GameManager {
+    #[func]
+    fn search_for_my_player(&mut self) {
+        godot_print!("search_for_my_player called");
+
+        let my_player_path = NodePath::from("MyPlayer");
+        if let Some(player_node) = self.base().get_node_or_null(my_player_path) {
+            if let Ok(typed_node) = player_node.try_cast::<MyPlayer>() {
+                godot_print!("MyPlayer found in scene tree: {:?}", typed_node);
+            } else {
+                godot_print!("Warning: Node found but it's not a MyPlayer");
+            }
+        } else {
+            godot_print!("Warning: MyPlayer not found in scene tree");
+        }
+    }
     #[func]
     fn create_player(&mut self) {
         godot_print!("Creating new player");
@@ -51,9 +78,9 @@ pub struct MyPlayer {
     base: Base<Node2D>,
     speed: f32,
     direction: Vector2,
+    velocity: Vector2,
     shape: Gd<ColorRect>,
 }
-
 #[godot_api]
 impl INode2D for MyPlayer {
     fn init(base: Base<Node2D>) -> Self {
@@ -71,46 +98,86 @@ impl INode2D for MyPlayer {
         Self {
             base,
             speed: 100.0,
-            direction: Vector2::new(1.0, 1.0),
+            direction: Vector2::new(1.0, 1.0).normalized(),
+            velocity: Vector2::ZERO,
             shape: rect,
         }
     }
-
     fn ready(&mut self) {
         godot_print!("MyPlayer ready called");
         let shape_clone = self.shape.clone();
+        godot_print!("Shape cloned: {:?}", shape_clone);
         self.base_mut()
             .add_child(shape_clone.clone().upcast::<Node>());
         godot_print!("ColorRect added as child to MyPlayer");
-        let added_shape = self.base().get_node_as::<ColorRect>("ColorRect");
-        godot_print!("ColorRect found in scene tree: {:?}", added_shape);
+
+        // Create a one-shot timer for delayed execution
+        let mut timer = godot::classes::Timer::new_alloc();
+        timer.set_one_shot(true);
+        timer.set_wait_time(0.1); // 100ms delay
+        godot_print!("Timer created: {:?}", timer);
+        timer.connect(
+            "timeout".into(),
+            self.base().callable("search_for_color_rect"),
+        );
+        godot_print!("Timer connected to search_for_color_rect");
+        let timer_clone = timer.clone();
+        self.base_mut()
+            .add_child(timer_clone.upcast::<godot::classes::Timer>());
+        godot_print!("Timer added as child to MyPlayer");
+        timer.start();
+        godot_print!("Timer started");
+
+        self.base_mut().set_process(true);
+        godot_print!("Processing enabled for MyPlayer");
     }
 }
 
 #[godot_api]
 impl MyPlayer {
     #[func]
+    fn search_for_color_rect(&mut self) {
+        godot_print!("search_for_color_rect called");
+
+        let color_rect_path = NodePath::from("ColorRect");
+        if let Some(node) = self.base().get_node_or_null(color_rect_path) {
+            if let Ok(added_shape) = node.try_cast::<ColorRect>() {
+                godot_print!("ColorRect found in scene tree: {:?}", added_shape);
+            } else {
+                godot_print!("Warning: Node found but it's not a ColorRect");
+            }
+        } else {
+            godot_print!("Warning: ColorRect not found in scene tree");
+        }
+    }
+    #[func]
     fn process(&mut self, delta: f64) {
         self.move_shape(delta);
     }
 
     fn move_shape(&mut self, delta: f64) {
-        let mut position = self.base().get_global_position();
-        let old_position = position;
-        position += self.direction * self.speed * delta as f32;
+        // Update velocity based on direction and speed
+        self.velocity = self.direction * self.speed;
+
+        // Update position
+        let mut new_position = self.base().get_global_position() + (self.velocity * delta as f32);
 
         // Bounce off screen edges
         if let Some(viewport) = self.base().get_viewport() {
             let size = viewport.get_visible_rect().size;
-            if position.x < 0.0 || position.x > size.x {
+            let shape_size = self.shape.get_size();
+
+            if new_position.x < 0.0 || new_position.x + shape_size.x > size.x {
                 self.direction.x *= -1.0;
+                new_position.x = new_position.x.clamp(0.0, size.x - shape_size.x);
                 godot_print!(
                     "MyPlayer bounced horizontally. New direction: {:?}",
                     self.direction
                 );
             }
-            if position.y < 0.0 || position.y > size.y {
+            if new_position.y < 0.0 || new_position.y + shape_size.y > size.y {
                 self.direction.y *= -1.0;
+                new_position.y = new_position.y.clamp(0.0, size.y - shape_size.y);
                 godot_print!(
                     "MyPlayer bounced vertically. New direction: {:?}",
                     self.direction
@@ -118,11 +185,8 @@ impl MyPlayer {
             }
         }
 
-        self.base_mut().set_global_position(position);
-        if (position - old_position).length() > 1.0 {
-            // Only log if moved more than 1 unit
-            godot_print!("MyPlayer moved from {:?} to {:?}", old_position, position);
-        }
+        // Set the new position
+        self.base_mut().set_global_position(new_position);
     }
 }
 
