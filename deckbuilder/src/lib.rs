@@ -1,5 +1,13 @@
+// notes for AI assistant:
+// this is running under Godot 4.4
+// some stuff that used to be under godot::engine is now under godot::classes, so assume all that stuff is imported
+// when using upcast(), you must turbofish the node type, e.g. upcast::<Node>()
+// in general, we want to do everything from rust and not use any gdscript at all
+// instead of e.g. Node::new(), it's now Node::new_gd()
+// anything that might change a node probably takes &mut, so define the variable as mut
+
 use godot::builtin::*;
-use godot::classes::*; // these used to be under godot::engine, now under godot::classes. this comment is for the AI :cry_emoji:
+use godot::classes::*;
 use godot::prelude::*;
 use rand::Rng;
 
@@ -89,21 +97,31 @@ pub struct MyPlayer {
     shape: Gd<ColorRect>,
     boop_player: Option<Gd<AudioStreamPlayer2D>>,
     hue: f32,
+    glow_shader: Gd<ShaderMaterial>,
 }
 #[godot_api]
 impl INode2D for MyPlayer {
     fn init(base: Base<Node2D>) -> Self {
         godot_print!("MyPlayer initialized!");
         let mut rect = ColorRect::new_alloc();
-        rect.set_size(Vector2::new(50.0, 50.0));
-        rect.set_position(Vector2::new(-25.0, -25.0));
-        rect.set_color(Color::from_rgb(1.0, 0.0, 0.0)); // Red color
-        godot_print!(
-            "ColorRect created for MyPlayer: size={:?}, position={:?}, color={:?}",
-            rect.get_size(),
-            rect.get_position(),
-            rect.get_color()
-        );
+        rect.set_size(Vector2::new(200.0, 200.0));
+        rect.set_position(Vector2::new(-100.0, -100.0));
+                rect.set_color(Color::from_rgba(1.0, 1.0, 1.0, 0.0)); // Fully transparent
+
+        rect.set_clip_contents(false);
+
+        let mut shader_material = ShaderMaterial::new_gd();
+        let mut shader = Shader::new_gd();
+        let shader_code = include_str!("glow_shader.gdshader");
+        godot_print!("Shader code length: {}", shader_code.len());
+        shader.set_code(shader_code.into());
+        shader_material.set_shader(shader);
+        godot_print!("Shader set on material: {:?}", shader_material.get_shader());
+
+        // Apply the shader to the ColorRect
+        rect.set_material(shader_material.clone().upcast::<Material>());
+        godot_print!("Material set on ColorRect: {:?}", rect.get_material());
+        rect.set_clip_contents(false);
 
         Self {
             base,
@@ -113,6 +131,7 @@ impl INode2D for MyPlayer {
             shape: rect,
             boop_player: None,
             hue: 0.0,
+            glow_shader: shader_material,
         }
     }
     fn ready(&mut self) {
@@ -156,10 +175,25 @@ impl INode2D for MyPlayer {
         self.hue = (self.hue + 0.5 * delta as f32) % 1.0;
 
         // Convert HSV to RGB
-        let color = Color::from_hsv(self.hue as f64, 1.0, 1.0);
+        let mut color = Color::from_hsv(self.hue as f64, 1.0, 1.0);
+        color.a = 0.25; // Increased alpha for a more visible glow
 
-        // Update shape color
-        self.shape.set_color(color);
+        // Update shader parameters
+        self.glow_shader
+            .set_shader_parameter("glow_color".into(), Variant::from(color));
+
+        // Print current shader parameters
+        godot_print!(
+            "Current glow_color parameter: {:?}",
+            self.glow_shader.get_shader_parameter("glow_color".into())
+        );
+
+        godot_print!("ColorRect visible: {}", self.shape.is_visible());
+        godot_print!(
+            "ColorRect global position: {:?}, size: {:?}",
+            self.shape.get_global_position(),
+            self.shape.get_size()
+        );
 
         // Existing movement code
         self.move_shape(delta);
