@@ -30,6 +30,7 @@ impl INode for GameManager {
         // Create a one-shot timer for delayed execution
         let mut timer = godot::classes::Timer::new_alloc();
         timer.set_one_shot(true);
+        timer.set_autostart(true);
         timer.set_wait_time(0.1); // 100ms delay
         godot_print!("Timer created: {:?}", timer);
         timer.connect(
@@ -51,18 +52,23 @@ impl GameManager {
     #[func]
     fn search_for_my_player(&mut self) {
         godot_print!("search_for_my_player called");
+        godot_print!("Current node (GameManager): {:?}", self.base().get_name());
 
-        let my_player_path = NodePath::from("MyPlayer");
-        if let Some(player_node) = self.base().get_node_or_null(my_player_path) {
-            if let Ok(typed_node) = player_node.try_cast::<MyPlayer>() {
-                godot_print!("MyPlayer found in scene tree: {:?}", typed_node);
-            } else {
-                godot_print!("Warning: Node found but it's not a MyPlayer");
+        for child in self.base().get_children().iter_shared() {
+            let child_name = child.get_name().to_string();
+            godot_print!("Child of GameManager: {}", child_name);
+
+            if child_name.starts_with("@MyPlayer@") {
+                if let Ok(my_player) = child.try_cast::<MyPlayer>() {
+                    godot_print!("MyPlayer found: {:?}", my_player);
+                    return;
+                }
             }
-        } else {
-            godot_print!("Warning: MyPlayer not found in scene tree");
         }
+
+        godot_print!("MyPlayer not found in children of GameManager");
     }
+
     #[func]
     fn create_player(&mut self) {
         godot_print!("Creating new player");
@@ -97,7 +103,7 @@ impl INode2D for MyPlayer {
         );
         Self {
             base,
-            speed: 100.0,
+            speed: 1000.0,
             direction: Vector2::new(1.0, 1.0).normalized(),
             velocity: Vector2::ZERO,
             shape: rect,
@@ -114,6 +120,7 @@ impl INode2D for MyPlayer {
         // Create a one-shot timer for delayed execution
         let mut timer = godot::classes::Timer::new_alloc();
         timer.set_one_shot(true);
+        timer.set_autostart(true);
         timer.set_wait_time(0.1); // 100ms delay
         godot_print!("Timer created: {:?}", timer);
         timer.connect(
@@ -131,6 +138,10 @@ impl INode2D for MyPlayer {
         self.base_mut().set_process(true);
         godot_print!("Processing enabled for MyPlayer");
     }
+    fn process(&mut self, delta: f64) {
+        godot_print!("Process function called. Delta: {}", delta);
+        self.move_shape(delta);
+    }
 }
 
 #[godot_api]
@@ -138,21 +149,21 @@ impl MyPlayer {
     #[func]
     fn search_for_color_rect(&mut self) {
         godot_print!("search_for_color_rect called");
+        godot_print!("Current node: {:?}", self.base().get_name());
 
-        let color_rect_path = NodePath::from("ColorRect");
-        if let Some(node) = self.base().get_node_or_null(color_rect_path) {
-            if let Ok(added_shape) = node.try_cast::<ColorRect>() {
-                godot_print!("ColorRect found in scene tree: {:?}", added_shape);
-            } else {
-                godot_print!("Warning: Node found but it's not a ColorRect");
+        for child in self.base().get_children().iter_shared() {
+            let child_name = child.get_name().to_string();
+            godot_print!("Child: {}", child_name);
+
+            if child_name.starts_with("@ColorRect@") {
+                if let Ok(color_rect) = child.try_cast::<ColorRect>() {
+                    godot_print!("ColorRect found: {:?}", color_rect);
+                    return;
+                }
             }
-        } else {
-            godot_print!("Warning: ColorRect not found in scene tree");
         }
-    }
-    #[func]
-    fn process(&mut self, delta: f64) {
-        self.move_shape(delta);
+
+        godot_print!("ColorRect not found in children");
     }
 
     fn move_shape(&mut self, delta: f64) {
