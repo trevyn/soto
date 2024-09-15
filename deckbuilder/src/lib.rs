@@ -1,33 +1,127 @@
+use godot::builtin::{Color, Vector2};
+use godot::classes::{ColorRect, Node, Node2D};
 use godot::prelude::*;
 
-// #![allow(unused)]
-fn main() {
-    struct MyExtension;
+struct MyExtension;
 
-    #[gdextension]
-    unsafe impl ExtensionLibrary for MyExtension {}
-}
-
-use godot::classes::{INode, Node};
+#[gdextension]
+unsafe impl ExtensionLibrary for MyExtension {}
 
 #[derive(GodotClass)]
 #[class(base=Node)]
-struct MyPlayer {
-    speed: f64,
-    angular_speed: f64,
-
+pub struct GameManager {
+    #[base]
     base: Base<Node>,
 }
 
 #[godot_api]
-impl INode for MyPlayer {
+impl INode for GameManager {
     fn init(base: Base<Node>) -> Self {
-        godot_print!("Hello, worldd!"); // Prints to the Godot console
+        godot_print!("GameManager initialized!");
+        Self { base }
+    }
 
+    fn ready(&mut self) {
+        godot_print!("GameManager ready() called");
+        let my_player = MyPlayer::new_alloc();
+        godot_print!("MyPlayer allocated: {:?}", my_player);
+        self.base_mut()
+            .add_child(my_player.clone().upcast::<Node>());
+        godot_print!("MyPlayer added as child to GameManager");
+
+        let player_node = self.base().get_node_as::<MyPlayer>("MyPlayer");
+        godot_print!("MyPlayer found in scene tree: {:?}", player_node);
+    }
+}
+
+#[godot_api]
+impl GameManager {
+    #[func]
+    fn create_player(&mut self) {
+        godot_print!("Creating new player");
+        let my_player = MyPlayer::new_alloc();
+        self.base_mut().add_child(my_player.upcast::<Node>());
+        godot_print!("New player created and added as child");
+    }
+}
+#[derive(GodotClass)]
+#[class(base=Node2D)]
+pub struct MyPlayer {
+    #[base]
+    base: Base<Node2D>,
+    speed: f32,
+    direction: Vector2,
+    shape: Gd<ColorRect>,
+}
+
+#[godot_api]
+impl INode2D for MyPlayer {
+    fn init(base: Base<Node2D>) -> Self {
+        godot_print!("MyPlayer initialized!");
+        let mut rect = ColorRect::new_alloc();
+        rect.set_size(Vector2::new(50.0, 50.0));
+        rect.set_position(Vector2::new(-25.0, -25.0));
+        rect.set_color(Color::from_rgb(1.0, 0.0, 0.0)); // Red color
+        godot_print!(
+            "ColorRect created for MyPlayer: size={:?}, position={:?}, color={:?}",
+            rect.get_size(),
+            rect.get_position(),
+            rect.get_color()
+        );
         Self {
-            speed: 400.0,
-            angular_speed: std::f64::consts::PI,
             base,
+            speed: 100.0,
+            direction: Vector2::new(1.0, 1.0),
+            shape: rect,
+        }
+    }
+
+    fn ready(&mut self) {
+        godot_print!("MyPlayer ready called");
+        let shape_clone = self.shape.clone();
+        self.base_mut()
+            .add_child(shape_clone.clone().upcast::<Node>());
+        godot_print!("ColorRect added as child to MyPlayer");
+        let added_shape = self.base().get_node_as::<ColorRect>("ColorRect");
+        godot_print!("ColorRect found in scene tree: {:?}", added_shape);
+    }
+}
+
+#[godot_api]
+impl MyPlayer {
+    #[func]
+    fn process(&mut self, delta: f64) {
+        self.move_shape(delta);
+    }
+
+    fn move_shape(&mut self, delta: f64) {
+        let mut position = self.base().get_global_position();
+        let old_position = position;
+        position += self.direction * self.speed * delta as f32;
+
+        // Bounce off screen edges
+        if let Some(viewport) = self.base().get_viewport() {
+            let size = viewport.get_visible_rect().size;
+            if position.x < 0.0 || position.x > size.x {
+                self.direction.x *= -1.0;
+                godot_print!(
+                    "MyPlayer bounced horizontally. New direction: {:?}",
+                    self.direction
+                );
+            }
+            if position.y < 0.0 || position.y > size.y {
+                self.direction.y *= -1.0;
+                godot_print!(
+                    "MyPlayer bounced vertically. New direction: {:?}",
+                    self.direction
+                );
+            }
+        }
+
+        self.base_mut().set_global_position(position);
+        if (position - old_position).length() > 1.0 {
+            // Only log if moved more than 1 unit
+            godot_print!("MyPlayer moved from {:?} to {:?}", old_position, position);
         }
     }
 }
