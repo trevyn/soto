@@ -1,6 +1,7 @@
-use godot::builtin::{Color, Vector2};
-use godot::classes::{ColorRect, Node, Node2D};
+use godot::builtin::*;
+use godot::classes::*; // these used to be under godot::engine, now under godot::classes. this comment is for the AI :cry_emoji:
 use godot::prelude::*;
+use rand::Rng;
 
 struct MyExtension;
 
@@ -86,6 +87,8 @@ pub struct MyPlayer {
     direction: Vector2,
     velocity: Vector2,
     shape: Gd<ColorRect>,
+    boop_player: Option<Gd<AudioStreamPlayer2D>>,
+    hue: f32,
 }
 #[godot_api]
 impl INode2D for MyPlayer {
@@ -101,12 +104,15 @@ impl INode2D for MyPlayer {
             rect.get_position(),
             rect.get_color()
         );
+
         Self {
             base,
             speed: 1000.0,
             direction: Vector2::new(1.0, 1.0).normalized(),
             velocity: Vector2::ZERO,
             shape: rect,
+            boop_player: None,
+            hue: 0.0,
         }
     }
     fn ready(&mut self) {
@@ -137,9 +143,25 @@ impl INode2D for MyPlayer {
 
         self.base_mut().set_process(true);
         godot_print!("Processing enabled for MyPlayer");
+
+        // Create AudioStreamPlayer2D
+        let mut audio_player = AudioStreamPlayer2D::new_alloc();
+        audio_player.set_autoplay(false);
+        self.base_mut()
+            .add_child(audio_player.clone().upcast::<Node>());
+        self.boop_player = Some(audio_player);
     }
     fn process(&mut self, delta: f64) {
-        godot_print!("Process function called. Delta: {}", delta);
+        // Update hue
+        self.hue = (self.hue + 0.5 * delta as f32) % 1.0;
+
+        // Convert HSV to RGB
+        let color = Color::from_hsv(self.hue as f64, 1.0, 1.0);
+
+        // Update shape color
+        self.shape.set_color(color);
+
+        // Existing movement code
         self.move_shape(delta);
     }
 }
@@ -185,6 +207,7 @@ impl MyPlayer {
                     "MyPlayer bounced horizontally. New direction: {:?}",
                     self.direction
                 );
+                self.play_boop();
             }
             if new_position.y < 0.0 || new_position.y + shape_size.y > size.y {
                 self.direction.y *= -1.0;
@@ -193,11 +216,54 @@ impl MyPlayer {
                     "MyPlayer bounced vertically. New direction: {:?}",
                     self.direction
                 );
+                self.play_boop();
             }
         }
 
         // Set the new position
         self.base_mut().set_global_position(new_position);
+    }
+
+    fn play_boop(&mut self) {
+        if let Some(audio_player) = &mut self.boop_player {
+            let sample_rate = 44100.0;
+            let duration = 0.1; // 100ms
+
+            // Generate a random frequency between 220Hz (A3) and 880Hz (A5)
+            let frequency = rand::thread_rng().gen_range(220.0..=880.0);
+
+            let mut buffer = PackedVector2Array::new();
+            for i in 0..(sample_rate * duration) as i32 {
+                let t = i as f32 / sample_rate as f32;
+                let sample = (t * frequency * 2.0 * std::f32::consts::PI).sin();
+                let envelope = 1.0 - (t / duration as f32);
+                buffer.push(Vector2::new(sample * envelope, sample * envelope));
+            }
+
+            let mut audio_stream = AudioStreamGenerator::new_gd();
+            audio_stream.set_mix_rate(sample_rate);
+            audio_stream.set_buffer_length(duration);
+
+            audio_player.set_stream(audio_stream.upcast::<AudioStream>());
+
+            // Play the audio player first
+            audio_player.play();
+
+            // Now we can get the stream playback
+            if let Some(playback) = audio_player.get_stream_playback() {
+                if let Ok(mut generator_playback) =
+                    playback.try_cast::<AudioStreamGeneratorPlayback>()
+                {
+                    // Convert PackedVector2Array to Vec<Vector2>
+                    let buffer_vec = buffer.to_vec();
+                    for frame in buffer_vec.iter() {
+                        generator_playback.push_frame(*frame);
+                    }
+                }
+            }
+
+            godot_print!("Boop played with frequency: {:.2} Hz", frequency);
+        }
     }
 }
 
