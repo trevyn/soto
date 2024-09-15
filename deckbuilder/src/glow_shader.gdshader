@@ -1,9 +1,11 @@
-// note that is is a godot shader, not necessarily glsl
-// preserve this comment when updating the shader
+// notes for ai assistant:
+// this is a godot shader, not necessarily glsl
+// preserve this comment when providing shader code
 
 shader_type canvas_item;
 
 uniform vec4 glow_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float brightness : hint_range(0.0, 2.0) = 1.0;
 
 void fragment() {
     vec2 center = vec2(0.5, 0.5);
@@ -22,6 +24,9 @@ void fragment() {
     // Combine rectangle and glow
     vec4 rect_color = mix(glow_color, vec4(1.0), rect_edge);
     vec4 final_color = mix(glow_color, rect_color, step(rect_dist, rect_size));
+
+    // Apply brightness modulation
+    final_color.rgb *= brightness; // Modulate brightness
 
     // Apply glow
     final_color.rgb += glow_color.rgb * glow_strength * 0.7; // Increased glow intensity

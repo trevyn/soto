@@ -178,14 +178,18 @@ impl INode2D for MyPlayer {
         let mut color = Color::from_hsv(self.hue as f64, 1.0, 1.0);
         color.a = 0.25; // Increased alpha for a more visible glow
 
-        // Update shader parameters
-        self.glow_shader
-            .set_shader_parameter("glow_color".into(), Variant::from(color));
+        // Update shader color parameter
+        self.glow_shader.set_shader_parameter("glow_color".into(), Variant::from(color));
+
+        // Update shader brightness parameter based on a value, here we can use a simple manual control or a constant value
+        let brightness_value = (0.5 + 0.5 * (self.hue * std::f32::consts::PI).sin()).clamp(0.0, 2.0); // Example modulation
+        self.glow_shader.set_shader_parameter("brightness".into(), Variant::from(brightness_value));
 
         // Print current shader parameters
         godot_print!(
-            "Current glow_color parameter: {:?}",
-            self.glow_shader.get_shader_parameter("glow_color".into())
+            "Current glow_color parameter: {:?}, Current brightness: {:?}",
+            self.glow_shader.get_shader_parameter("glow_color".into()),
+            self.glow_shader.get_shader_parameter("brightness".into())
         );
 
         godot_print!("ColorRect visible: {}", self.shape.is_visible());
